@@ -11,8 +11,8 @@ A command-line app for my CSC 299 final project. Read `problem.md` (what it must
   any spec, test or code change.
 - **Tests for everything.** Every new or changed behaviour gets a pytest test, and
   `python -m pytest` must pass with 0 failed and 0 skipped. A skipped test has not passed.
-  A test must fail if the code it checks were wrong. When requirements have IDs (R1, R2...),
-  each test names the ID it checks.
+  A test must fail if the code it checks were wrong. Requirements have IDs (R1, R2...), and
+  each test names the ID(s) it checks in a comment right above it: `# Checks R3, R8.`
 - **Commits:** one change per commit. The message says what changed and why. Never
   "update", "fix", "wip" or similar. Never undo or amend a commit.
 - **Show me every commit message before committing**, and wait for my OK. The assignment
@@ -23,7 +23,7 @@ A command-line app for my CSC 299 final project. Read `problem.md` (what it must
 - **README.md** always says what the program does, the command to run it, and the command
   to run the tests.
 - **Runs with one command** on my computer. No API key, login or paid service.
-- **Ask before installing anything.**
+- **Ask before installing, changing, deleting, adding or modifying anything.**
 
 ## How to run
 
