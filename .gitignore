@@ -1,0 +1,17 @@
+# Never in a public repo (assignment rules)
+*.jsonl
+.venv/
+venv/
+node_modules/
+.env
+
+# My real saved classes: personal grades stay on my computer
+saved_classes/
+
+# Python and pytest leftovers
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Claude Code personal settings
+.claude/settings.local.json
