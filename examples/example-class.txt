@@ -1,0 +1,3 @@
+homework / midterm / final / attendance / project
+30         30        20      10           10          = total weight
+20         25        N/A     10           N/A         = grades so far
