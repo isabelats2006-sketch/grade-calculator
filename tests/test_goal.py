@@ -29,6 +29,7 @@ SPEC_EXAMPLE = (
         ("100%", 100, "100%"),
     ],
 )
+# Checks R6, R9.
 def test_goal_can_be_a_letter_a_gpa_or_a_percent(typed, lowest, label):
     goal = parse_goal(typed)
     assert (goal.lowest, goal.label) == (lowest, label)
@@ -46,6 +47,7 @@ def test_goal_can_be_a_letter_a_gpa_or_a_percent(typed, lowest, label):
         ("150%", "A goal can't be more than 100%."),
     ],
 )
+# Checks R6, R7.
 def test_a_goal_that_cant_be_understood_is_explained(typed, message):
     with pytest.raises(GoalProblem) as caught:
         parse_goal(typed)
@@ -54,6 +56,7 @@ def test_a_goal_that_cant_be_understood_is_explained(typed, message):
 
 # --- What is needed: the examples from spec.md ---
 
+# Checks R6.
 def test_spec_example_needs_92_percent_for_a_b():
     items = parse_class(SPEC_EXAMPLE)
     goal = parse_goal("B")
@@ -62,6 +65,7 @@ def test_spec_example_needs_92_percent_for_a_b():
     assert describe_needed(needed, goal) == "You need at least 92% on final and project to get a B."
 
 
+# Checks R6.
 def test_spec_example_a_minus_is_not_reachable_and_shows_best_possible():
     items = parse_class(SPEC_EXAMPLE)
     goal = parse_goal("A-")
@@ -73,6 +77,7 @@ def test_spec_example_a_minus_is_not_reachable_and_shows_best_possible():
     )
 
 
+# Checks R6.
 def test_goal_already_reached_even_with_zero_on_the_rest():
     items = parse_class("hw / midterm / final / attendance\n30 30 30 10\n30 30 N/A 10\n")
     goal = parse_goal("C-")  # 70 out of 100 already, final N/A
@@ -81,6 +86,7 @@ def test_goal_already_reached_even_with_zero_on_the_rest():
     assert describe_needed(needed, goal) == "You already have a C- even if you get 0 on the rest."
 
 
+# Checks R6.
 def test_one_na_item_is_named_alone():
     items = parse_class("hw / midterm / final / attendance\n30 30 30 10\n30 30 N/A 10\n")
     goal = parse_goal("A")
@@ -90,6 +96,7 @@ def test_one_na_item_is_named_alone():
     )
 
 
+# Checks R6.
 def test_three_na_items_are_listed_with_commas():
     text = "hw / midterm / final / attendance / project\n20 20 20 20 20\n20 N/A N/A 20 N/A\n"
     goal = parse_goal("B")
@@ -98,6 +105,7 @@ def test_three_na_items_are_listed_with_commas():
     )
 
 
+# Checks R6.
 def test_percent_goal_reads_without_article():
     items = parse_class(SPEC_EXAMPLE)
     goal = parse_goal("80%")
@@ -107,6 +115,7 @@ def test_percent_goal_reads_without_article():
 
 
 @pytest.mark.parametrize("goal_text, reached", [("C-", "reached"), ("B", "did not reach")])
+# Checks R6.
 def test_nothing_left_says_final_grade_and_if_the_goal_was_reached(goal_text, reached):
     items = parse_class("hw / midterm / final / attendance\n30 30 30 10\n20 20 20 10\n")
     goal = parse_goal(goal_text)
@@ -117,6 +126,7 @@ def test_nothing_left_says_final_grade_and_if_the_goal_was_reached(goal_text, re
     )
 
 
+# Checks R4, R6.
 def test_zero_weight_na_item_is_not_counted_as_remaining():
     items = parse_class("hw / midterm / final / attendance\n40 30 30 0\n30 25 N/A N/A\n")
     assert needed_for(items, parse_goal("B")).remaining == ["final"]
@@ -143,6 +153,7 @@ def final_if_everyone_scores(items, percent):
         "hw / midterm / final / attendance\n30 30 30 10\n30 30 N/A 10\n",
     ],
 )
+# Checks R6.
 def test_every_answer_is_checked_by_filling_in_the_na_items(text, goal_text):
     items = parse_class(text)
     goal = parse_goal(goal_text)

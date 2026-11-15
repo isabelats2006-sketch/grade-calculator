@@ -11,9 +11,11 @@ from grades import show_number
     "text",
     ["20", "0", "100", "27.5", "20.25", "20.123456", "0.001", "33.3333333"],
 )
+# Checks R3, R10.
 def test_numbers_are_shown_exactly_as_typed(text):
     assert show_number(Fraction(text)) == text
 
 
+# Checks R3.
 def test_trailing_zeros_typed_by_the_user_are_dropped():
     assert show_number(Fraction("27.50")) == "27.5"

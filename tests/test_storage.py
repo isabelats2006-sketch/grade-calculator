@@ -22,6 +22,7 @@ CSC299 = parse_class(
 
 # --- The saved file ---
 
+# Checks R10, R11.
 def test_saved_text_lines_values_up_under_the_names():
     assert class_to_text(CSC299) == (
         "homework / midterm / final / attendance / project\n"
@@ -30,11 +31,13 @@ def test_saved_text_lines_values_up_under_the_names():
     )
 
 
+# Checks R10.
 def test_save_then_load_gives_back_the_same_class(tmp_path):
     save_class(tmp_path, "CSC 299", CSC299)
     assert load_class(tmp_path, "CSC 299") == CSC299
 
 
+# Checks R10.
 def test_exact_decimals_survive_saving(tmp_path):
     items = [
         Item("hw", Fraction(25), Fraction("20.123456")),
@@ -46,6 +49,7 @@ def test_exact_decimals_survive_saving(tmp_path):
     assert load_class(tmp_path, "MATH 101") == items
 
 
+# Checks R10.
 def test_save_makes_the_folder_if_missing(tmp_path):
     folder = tmp_path / "saved_classes"
     path = save_class(folder, "WRD 101", CSC299)
@@ -53,6 +57,7 @@ def test_save_makes_the_folder_if_missing(tmp_path):
     assert path.is_file()
 
 
+# Checks R10, R11.
 def test_saving_again_replaces_the_old_version(tmp_path):
     save_class(tmp_path, "CSC 299", CSC299)
     changed = [Item(i.name, i.weight, Fraction(18) if i.name == "final" else i.grade) for i in CSC299]
@@ -61,12 +66,14 @@ def test_saving_again_replaces_the_old_version(tmp_path):
     assert list_classes(tmp_path) == ["CSC 299"]
 
 
+# Checks R10.
 def test_saving_with_different_capitals_replaces_not_duplicates(tmp_path):
     save_class(tmp_path, "csc 299", CSC299)
     save_class(tmp_path, "CSC 299", CSC299)
     assert list_classes(tmp_path) == ["CSC 299"]
 
 
+# Checks R8, R11.
 def test_a_hand_edited_file_that_breaks_a_rule_is_explained(tmp_path):
     (tmp_path / "CSC 299.txt").write_text(
         "hw / midterm / final / attendance\n30 30 30 0\n20 20 20 0\n", encoding="utf-8"
@@ -80,22 +87,26 @@ def test_a_hand_edited_file_that_breaks_a_rule_is_explained(tmp_path):
 
 # --- Listing and finding saved classes ---
 
+# Checks R10.
 def test_no_folder_yet_means_no_saved_classes(tmp_path):
     assert list_classes(tmp_path / "saved_classes") == []
 
 
+# Checks R10.
 def test_classes_are_listed_in_order_ignoring_capitals(tmp_path):
     for name in ["WRD 101", "csc 300", "MATH 101", "CSC 299"]:
         save_class(tmp_path, name, CSC299)
     assert list_classes(tmp_path) == ["CSC 299", "csc 300", "MATH 101", "WRD 101"]
 
 
+# Checks R10.
 def test_only_txt_files_are_classes(tmp_path):
     save_class(tmp_path, "CSC 299", CSC299)
     (tmp_path / "notes.md").write_text("not a class", encoding="utf-8")
     assert list_classes(tmp_path) == ["CSC 299"]
 
 
+# Checks R10.
 def test_find_class_ignores_capitals_and_spaces(tmp_path):
     save_class(tmp_path, "CSC 299", CSC299)
     assert find_class(tmp_path, "  csc 299 ") == "CSC 299"
@@ -104,6 +115,7 @@ def test_find_class_ignores_capitals_and_spaces(tmp_path):
 
 # --- Checking the name ---
 
+# Checks R10.
 def test_good_names_are_kept_without_outer_spaces():
     assert check_name("  CSC 299 ") == "CSC 299"
     assert check_name("MATH 101 (Fall)") == "MATH 101 (Fall)"
@@ -121,12 +133,14 @@ def test_good_names_are_kept_without_outer_spaces():
         ("LPT1", 'Windows doesn\'t allow "LPT1" as a name. Try another one.'),
     ],
 )
+# Checks R7, R10.
 def test_names_windows_cant_save_are_explained(name, message):
     with pytest.raises(NameProblem) as caught:
         check_name(name)
     assert str(caught.value) == message
 
 
+# Checks R10.
 def test_save_refuses_a_bad_name(tmp_path):
     with pytest.raises(NameProblem):
         save_class(tmp_path, "CSC/299", CSC299)

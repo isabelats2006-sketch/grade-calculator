@@ -50,6 +50,7 @@ def saved(tmp_path):
 
 # --- The screen (spec.md section 5) ---
 
+# Checks R3, R5, R6, R9.
 def test_the_screen_matches_the_spec_example(class_file, saved):
     code, printed, _ = run([str(class_file)], ["CSC 299", "B", "3"], saved)
     assert code == 0
@@ -66,6 +67,7 @@ def test_the_screen_matches_the_spec_example(class_file, saved):
     assert printed.endswith("Bye!")
 
 
+# Checks R5, R7.
 def test_no_grades_out_yet_is_shown_instead_of_a_grade(tmp_path, saved):
     path = tmp_path / "new.txt"
     path.write_text("hw / midterm / final / attendance\n30 30 30 10\nN/A N/A N/A N/A\n", encoding="utf-8")
@@ -76,6 +78,7 @@ def test_no_grades_out_yet_is_shown_instead_of_a_grade(tmp_path, saved):
 
 # --- Opening a file and saving it by name (sections 2 and 6) ---
 
+# Checks R10.
 def test_first_run_saves_the_class_with_the_suggested_name(class_file, saved):
     _, printed, questions = run([str(class_file)], ["", "B", "3"], saved)
     assert "(press Enter for csc299)" in questions[0]
@@ -83,6 +86,7 @@ def test_first_run_saves_the_class_with_the_suggested_name(class_file, saved):
     assert 'Saved as "csc299". Next time, just run: python gradecalc.py' in printed
 
 
+# Checks R2, R3, R8.
 def test_a_file_with_problems_is_explained_then_another_file_is_used(tmp_path, class_file, saved):
     bad = tmp_path / "bad.txt"
     bad.write_text("hw / midtrem / final / attendance\n30 30 30 0\n20 20 20 0\n", encoding="utf-8")
@@ -94,6 +98,7 @@ def test_a_file_with_problems_is_explained_then_another_file_is_used(tmp_path, c
     assert "You need at least 92% on final and project to get a B." in printed
 
 
+# Checks R7, R8.
 def test_a_missing_file_is_explained_and_q_quits(tmp_path, saved):
     missing = tmp_path / "nope.txt"
     code, printed, _ = run([str(missing)], ["q"], saved)
@@ -103,12 +108,14 @@ def test_a_missing_file_is_explained_and_q_quits(tmp_path, saved):
     assert list_classes(saved) == []
 
 
+# Checks R7, R10.
 def test_a_bad_class_name_is_explained_and_asked_again(class_file, saved):
     _, printed, _ = run([str(class_file)], ["CSC/299", "CSC 299", "B", "3"], saved)
     assert "A class name can't contain /. Try something like CSC 299." in printed
     assert list_classes(saved) == ["CSC 299"]
 
 
+# Checks R10.
 def test_replacing_a_saved_class_asks_first_and_no_keeps_it(class_file, saved):
     save_class(saved, "CSC 299", parse_class("hw / midterm / final / attendance\n30 30 30 10\n1 1 1 1\n"))
     _, printed, _ = run([str(class_file)], ["csc 299", "n", "CSC 299 new", "B", "3"], saved)
@@ -117,6 +124,7 @@ def test_replacing_a_saved_class_asks_first_and_no_keeps_it(class_file, saved):
     assert load_class(saved, "CSC 299")[0].grade == 1  # the old one was kept
 
 
+# Checks R10.
 def test_replacing_a_saved_class_with_yes(class_file, saved):
     save_class(saved, "CSC 299", parse_class("hw / midterm / final / attendance\n30 30 30 10\n1 1 1 1\n"))
     _, _, questions = run([str(class_file)], ["CSC 299", "y", "B", "3"], saved)
@@ -127,6 +135,7 @@ def test_replacing_a_saved_class_with_yes(class_file, saved):
 
 # --- Picking a saved class (section 6) ---
 
+# Checks R10.
 def test_no_file_lists_saved_classes_and_opens_the_one_picked(saved):
     save_class(saved, "MATH 101", parse_class("hw / midterm / final / attendance\n30 30 30 10\n30 30 30 10\n"))
     save_class(saved, "CSC 299", parse_class(SPEC_EXAMPLE))
@@ -136,6 +145,7 @@ def test_no_file_lists_saved_classes_and_opens_the_one_picked(saved):
     assert "You need at least 92% on final and project to get a B." in printed
 
 
+# Checks R6, R10.
 def test_no_saved_classes_explains_how_to_start(saved):
     code, printed, questions = run([], [], saved)
     assert code == 0
@@ -143,6 +153,7 @@ def test_no_saved_classes_explains_how_to_start(saved):
     assert "You have no saved classes yet. Start with a class file, for example:" in printed
 
 
+# Checks R8, R11.
 def test_a_saved_class_edited_by_hand_with_problems_is_explained(saved):
     saved.mkdir()
     (saved / "CSC 299.txt").write_text("hw / midterm / final / attendance\n30 30 30 0\n1 1 1 0\n", encoding="utf-8")
@@ -152,6 +163,7 @@ def test_a_saved_class_edited_by_hand_with_problems_is_explained(saved):
     assert "the weights add up to 90" in printed
 
 
+# Checks R6, R7.
 def test_more_than_one_file_shows_how_to_run_it(saved):
     code, printed, _ = run(["a.txt", "b.txt"], [], saved)
     assert code == 1
@@ -161,6 +173,7 @@ def test_more_than_one_file_shows_how_to_run_it(saved):
 
 # --- The goal (section 4) ---
 
+# Checks R6, R7.
 def test_a_goal_that_cant_be_understood_is_asked_again(class_file, saved):
     _, printed, _ = run([str(class_file)], ["CSC 299", "A+", "3.5", "b", "3"], saved)
     assert 'I didn\'t understand "A+".' in printed
@@ -168,6 +181,7 @@ def test_a_goal_that_cant_be_understood_is_asked_again(class_file, saved):
     assert "GOAL = B (3.0)" in printed
 
 
+# Checks R6, R11.
 def test_changing_the_goal_from_the_menu(class_file, saved):
     _, printed, _ = run([str(class_file)], ["CSC 299", "B", "2", "D", "3"], saved)
     assert "You need at least 92% on final and project to get a B." in printed
@@ -177,6 +191,7 @@ def test_changing_the_goal_from_the_menu(class_file, saved):
 
 # --- Changing a grade (section 7) ---
 
+# Checks R10, R11.
 def test_changing_a_grade_updates_the_screen_and_the_saved_class(class_file, saved):
     _, printed, _ = run([str(class_file)], ["CSC 299", "B", "1", "3", "18", "3"], saved)
     assert "  3) final: N/A out of 20" in printed
@@ -186,6 +201,7 @@ def test_changing_a_grade_updates_the_screen_and_the_saved_class(class_file, sav
     assert load_class(saved, "CSC 299")[2].grade == 18
 
 
+# Checks R7, R11.
 def test_a_bad_new_grade_is_explained_and_asked_again(class_file, saved):
     answers = ["CSC 299", "B", "1", "9", "3", "25", "eighteen", "n/a", "3"]
     _, printed, _ = run([str(class_file)], answers, saved)
@@ -194,6 +210,7 @@ def test_a_bad_new_grade_is_explained_and_asked_again(class_file, saved):
     assert 'I didn\'t understand "eighteen". Type a number from 0 to 20, or N/A.' in printed
 
 
+# Checks R7.
 def test_a_wrong_menu_choice_is_explained(class_file, saved):
     _, printed, _ = run([str(class_file)], ["CSC 299", "B", "7", "3"], saved)
     assert "Please type 1, 2 or 3." in printed
@@ -202,6 +219,7 @@ def test_a_wrong_menu_choice_is_explained(class_file, saved):
 # --- Quitting ---
 
 @pytest.mark.parametrize("answers", [["CSC 299", "q"], ["CSC 299", "B", "q"], ["CSC 299", "B"]])
+# Checks R7.
 def test_q_or_closing_the_input_quits_cleanly_at_any_question(class_file, saved, answers):
     code, printed, _ = run([str(class_file)], answers, saved)
     assert code == 0
@@ -211,6 +229,7 @@ def test_q_or_closing_the_input_quits_cleanly_at_any_question(class_file, saved,
 # --- parse_grade, the check behind "Change a grade" ---
 
 @pytest.mark.parametrize("typed, weight, grade", [("18", 20, 18), ("0", 0, 0), ("N/A", 20, None), (" 19.5 ", 20, Fraction("19.5"))])
+# Checks R3, R5, R11.
 def test_parse_grade_accepts_the_same_grades_as_the_file(typed, weight, grade):
     assert parse_grade(typed, Fraction(weight)) == grade
 
@@ -222,6 +241,7 @@ def test_parse_grade_accepts_the_same_grades_as_the_file(typed, weight, grade):
         ("-1", 20, 'I didn\'t understand "-1". Type a number from 0 to 20, or N/A.'),
     ],
 )
+# Checks R3, R4, R11.
 def test_parse_grade_rejects_what_the_file_rejects(typed, weight, message):
     with pytest.raises(GradeProblem) as caught:
         parse_grade(typed, Fraction(weight))
