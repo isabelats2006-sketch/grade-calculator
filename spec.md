@@ -106,8 +106,8 @@ CSC 299
 GOAL = B (3.0) // CURRENT GRADE = C+ (2.3), 79%
 
 homework / midterm / final / attendance / project
-30         30        20      10           10          = total weight
-20         25        N/A     10           N/A         = 55 out of 70 = 79% = C+ (2.3)
+30         30        20      10           10       = total weight
+20         25        N/A     10           N/A      = 55 out of 70 = 79% = C+ (2.3)
 
 You need at least 92% on final and project to get a B.
 ```
