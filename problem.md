@@ -40,3 +40,8 @@ I have a lot on my plate right now and it would be much easier if I didnt have t
   ```
 - R10: It can be used for multiple classes (so if ure having MATH 101 and WRD 101, for example, you can have a calc for both), so every session should have a name and be saved for future use.
 - R11: It should also be easy to be modify.
+
+# Round 2 requirements
+
+- R12: It can delete a saved class and it double checks if the user wants to actually delete the class by asking: are you sure you want to delete it? it will be lost
+- R13: It can rename any class at any point, special characters are allowed within reason
