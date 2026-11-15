@@ -10,7 +10,8 @@ import pytest
 
 from grades import FileProblems, Item, parse_class
 from storage import (
-    NameProblem, check_name, class_to_text, find_class, list_classes, load_class, save_class,
+    NameProblem, check_name, class_to_text, delete_class, find_class, list_classes, load_class,
+    rename_class, save_class,
 )
 
 CSC299 = parse_class(
@@ -145,3 +146,78 @@ def test_save_refuses_a_bad_name(tmp_path):
     with pytest.raises(NameProblem):
         save_class(tmp_path, "CSC/299", CSC299)
     assert list_classes(tmp_path) == []
+
+
+# --- Renaming a saved class (spec.md section 9) ---
+
+# Checks R13.
+def test_rename_moves_the_class_and_keeps_its_grades(tmp_path):
+    save_class(tmp_path, "CSC 299", CSC299)
+    assert rename_class(tmp_path, "CSC 299", "CSC 299 (Fall)") == "CSC 299 (Fall)"
+    assert list_classes(tmp_path) == ["CSC 299 (Fall)"]
+    assert load_class(tmp_path, "CSC 299 (Fall)") == CSC299
+
+
+@pytest.mark.parametrize("new_name", ["CSC 299 (Fall) & Lab #2", "Français 101", "MATH-101!", "it's 50% + €"])
+# Checks R13.
+def test_rename_allows_special_characters_windows_allows(tmp_path, new_name):
+    save_class(tmp_path, "CSC 299", CSC299)
+    rename_class(tmp_path, "CSC 299", new_name)
+    assert list_classes(tmp_path) == [new_name]
+    assert load_class(tmp_path, new_name) == CSC299
+
+
+@pytest.mark.parametrize(
+    "new_name, message",
+    [
+        ("CSC/299", "A class name can't contain /. Try something like CSC 299."),
+        ("   ", "Please type a name for the class, like CSC 299."),
+        ("CSC 299.", "A class name can't end with a dot."),
+        ("NUL", "Windows doesn't allow \"NUL\" as a name. Try another one."),
+    ],
+)
+# Checks R7, R13.
+def test_rename_refuses_names_windows_cant_save_and_keeps_the_class(tmp_path, new_name, message):
+    save_class(tmp_path, "CSC 299", CSC299)
+    with pytest.raises(NameProblem) as caught:
+        rename_class(tmp_path, "CSC 299", new_name)
+    assert str(caught.value) == message
+    assert list_classes(tmp_path) == ["CSC 299"]
+
+
+# Checks R13.
+def test_rename_refuses_a_name_another_class_has_and_keeps_both(tmp_path):
+    save_class(tmp_path, "CSC 299", CSC299)
+    other = parse_class("hw / midterm / final / attendance\n30 30 30 10\n1 1 1 1\n")
+    save_class(tmp_path, "MATH 101", other)
+    with pytest.raises(NameProblem) as caught:
+        rename_class(tmp_path, "CSC 299", "math 101")
+    assert str(caught.value) == 'There is already a saved class called "MATH 101". Pick another name.'
+    assert load_class(tmp_path, "CSC 299") == CSC299
+    assert load_class(tmp_path, "MATH 101") == other
+
+
+# Checks R13.
+def test_rename_can_change_only_the_capitals(tmp_path):
+    save_class(tmp_path, "csc 299", CSC299)
+    assert rename_class(tmp_path, "csc 299", "CSC 299") == "CSC 299"
+    assert list_classes(tmp_path) == ["CSC 299"]
+    assert load_class(tmp_path, "CSC 299") == CSC299
+
+
+# Checks R13.
+def test_rename_trims_spaces_around_the_new_name(tmp_path):
+    save_class(tmp_path, "CSC 299", CSC299)
+    assert rename_class(tmp_path, "CSC 299", "  WRD 101  ") == "WRD 101"
+    assert list_classes(tmp_path) == ["WRD 101"]
+
+
+# --- Deleting a saved class (spec.md section 10) ---
+
+# Checks R12.
+def test_delete_removes_only_that_class(tmp_path):
+    save_class(tmp_path, "CSC 299", CSC299)
+    save_class(tmp_path, "MATH 101", CSC299)
+    delete_class(tmp_path, "CSC 299")
+    assert list_classes(tmp_path) == ["MATH 101"]
+    assert not (tmp_path / "CSC 299.txt").exists()

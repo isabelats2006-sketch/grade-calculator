@@ -92,3 +92,24 @@ def load_class(folder, name):
     """Load a saved class. Raises FileProblems if it was edited by hand and broke a rule."""
     path = Path(folder) / f"{name}.txt"
     return parse_class(path.read_text(encoding="utf-8"))
+
+
+def rename_class(folder, old_name, new_name):
+    """Rename a saved class (spec.md section 9). Returns the new name.
+
+    Raises NameProblem if the new name can't be a file name, or if another saved class
+    already has it (capitals ignored), so a rename never replaces another class.
+    Changing only the capitals of the same class is allowed.
+    """
+    new_name = check_name(new_name)
+    existing = find_class(folder, new_name)
+    if existing is not None and existing.lower() != old_name.lower():
+        raise NameProblem(f'There is already a saved class called "{existing}". Pick another name.')
+    folder = Path(folder)
+    (folder / f"{old_name}.txt").rename(folder / f"{new_name}.txt")
+    return new_name
+
+
+def delete_class(folder, name):
+    """Delete a saved class's file (spec.md section 10). The program asks before calling this."""
+    (Path(folder) / f"{name}.txt").unlink()
