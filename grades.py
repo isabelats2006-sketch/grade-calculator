@@ -7,6 +7,7 @@ All numbers are Fractions, not floats, so grade edges like 89.5% are exact.
 import math
 import re
 from dataclasses import dataclass
+from decimal import Decimal
 from fractions import Fraction
 
 # The first four names, in order. The first spelling is the one shown in error messages.
@@ -116,7 +117,7 @@ def parse_class(text):
         weights.append(weight)
     if weights and None not in weights and sum(weights) != 100:
         problems.append(
-            f"Line {weights_line}: the weights add up to {_show(sum(weights))}, "
+            f"Line {weights_line}: the weights add up to {show_number(sum(weights))}, "
             "but they must add up to exactly 100."
         )
 
@@ -138,13 +139,13 @@ def parse_class(text):
             weight = weights[position - 1]
             if weight == 0 and grade != 0:
                 problems.append(
-                    f"Line {grades_line}: grade {position} is {_show(grade)}, but its weight is 0, "
+                    f"Line {grades_line}: grade {position} is {show_number(grade)}, but its weight is 0, "
                     "so the grade must be 0 or N/A."
                 )
             elif grade > weight:
                 problems.append(
-                    f"Line {grades_line}: grade {position} is {_show(grade)}, "
-                    f"but it can't be more than its weight ({_show(weight)})."
+                    f"Line {grades_line}: grade {position} is {show_number(grade)}, "
+                    f"but it can't be more than its weight ({show_number(weight)})."
                 )
 
     if problems:
@@ -152,11 +153,15 @@ def parse_class(text):
     return [Item(name, weight, grade) for name, weight, grade in zip(names, weights, grades)]
 
 
-def _show(number):
-    """Show a Fraction the way a person would write it: 20, 27.5."""
+def show_number(number):
+    """Show a Fraction exactly, the way a person would write it: 20, 27.5, 20.123456.
+
+    Not float(...): that cuts to 6 digits, so 20.123456 would be saved as 20.1235.
+    Numbers come from decimals typed by the user, so they always end.
+    """
     if number.denominator == 1:
         return str(number.numerator)
-    return f"{float(number):g}"
+    return str(Decimal(number.numerator) / Decimal(number.denominator))
 
 
 # --- The current grade (spec.md section 3) ---
@@ -272,7 +277,7 @@ def parse_goal(text):
 
     if number > 100:
         raise GoalProblem("A goal can't be more than 100%.")
-    shown = _show(number)
+    shown = show_number(number)
     # A rounded % of at least ceil(number) reaches the goal (90.5% needs 91%).
     return Goal(math.ceil(number), f"{shown}%", f"{shown}%")
 
