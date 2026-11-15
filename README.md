@@ -27,13 +27,18 @@ homework / midterm / final / attendance / project
 You need at least 92% on final and project to get a B.
 ```
 
-From the menu you can change a grade (it is saved), change the goal, or quit.
+From the menu you can change a grade (it is saved), change the goal, rename the class,
+delete it, or quit.
 
 After that, run it with no file to pick one of your saved classes:
 
 ```
 python gradecalc.py
 ```
+
+In that list you can also type `r` to rename a class or `d` to delete one. Names can use
+any character except `\ / : * ? " < > |` (Windows doesn't allow those in file names).
+Before deleting, it asks you to type the class's name, so nothing is deleted by accident.
 
 ## Run the tests
 
