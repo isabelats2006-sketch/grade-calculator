@@ -1,4 +1,4 @@
-"""Grade calculator: the program you run (spec.md sections 2, 5, 6 and 7).
+"""Grade calculator: the program you run (spec.md sections 2, 5, 6, 7, 9, 10 and 11).
 
     python gradecalc.py csc299.txt     open a class file (first time)
     python gradecalc.py                pick one of your saved classes
@@ -14,7 +14,10 @@ from grades import (
     FileProblems, GoalProblem, GradeProblem, Item, current_grade, describe_needed,
     needed_for, parse_class, parse_goal, parse_grade, show_number,
 )
-from storage import NameProblem, check_name, class_to_text, find_class, list_classes, load_class, save_class
+from storage import (
+    NameProblem, check_name, class_to_text, delete_class, find_class, list_classes, load_class,
+    rename_class, save_class,
+)
 
 SAVED_CLASSES = Path(__file__).parent / "saved_classes"
 
@@ -44,8 +47,14 @@ def main(args, ask=input, say=print, folder=SAVED_CLASSES):
             if picked is None:
                 return 0
             items, name = picked
-        goal = ask_goal(ask, say)
-        run_menu(items, name, goal, ask, say, folder)
+        while True:
+            goal = ask_goal(ask, say)
+            run_menu(items, name, goal, ask, say, folder)
+            # run_menu only returns when the open class was deleted: back to the list.
+            picked = pick_saved_class(ask, say, folder)
+            if picked is None:
+                break
+            items, name = picked
     except (Quit, EOFError, KeyboardInterrupt):
         say("")
     say("Bye!")
@@ -58,6 +67,15 @@ def _ask(ask, question):
     if answer.strip().lower() == "q":
         raise Quit
     return answer
+
+
+def _ask_number(ask, say, count, question):
+    """Ask for a number from 1 to count until one is typed. Returns it as an int."""
+    while True:
+        typed = _ask(ask, question).strip()
+        if typed.isdigit() and 1 <= int(typed) <= count:
+            return int(typed)
+        say(f"Please type a number from 1 to {count}.")
 
 
 # --- Getting the class ---
@@ -111,20 +129,33 @@ def ask_class_name(suggestion, ask, say, folder):
 
 
 def pick_saved_class(ask, say, folder):
-    """List the saved classes and let the user pick one. None if there are none."""
-    names = list_classes(folder)
-    if not names:
-        say("You have no saved classes yet. Start with a class file, for example:")
-        say("  python gradecalc.py csc299.txt")
-        return None
-    say("Your saved classes:")
-    for number, name in enumerate(names, start=1):
-        say(f"  {number}) {name}")
+    """List the saved classes and let the user pick one, rename one or delete one.
+
+    Returns (items, name) for the class picked, or None if there are no classes (left).
+    """
     while True:
-        typed = _ask(ask, "Pick a class by number, or q to quit: ").strip()
-        if typed.isdigit() and 1 <= int(typed) <= len(names):
+        names = list_classes(folder)
+        if not names:
+            say("You have no saved classes yet. Start with a class file, for example:")
+            say("  python gradecalc.py csc299.txt")
+            return None
+        say("Your saved classes:")
+        for number, name in enumerate(names, start=1):
+            say(f"  {number}) {name}")
+        while True:
+            typed = _ask(ask, "Pick a class by number, r to rename, d to delete, or q to quit: ")
+            typed = typed.strip().lower()
+            if typed in ("r", "d") or (typed.isdigit() and 1 <= int(typed) <= len(names)):
+                break
+            say(f"Please type a number from 1 to {len(names)}.")
+        if typed.isdigit():
             break
-        say(f"Please type a number from 1 to {len(names)}.")
+        name = names[_ask_number(ask, say, len(names), "Which class? (number): ") - 1]
+        if typed == "r":
+            ask_rename(name, ask, say, folder)
+        else:
+            ask_delete(name, ask, say, folder)
+        say("")
     name = names[int(typed) - 1]
     try:
         return load_class(folder, name), name
@@ -173,15 +204,21 @@ def screen(items, name, goal):
     ]
 
 
-MENU = ["", "1) Change a grade", "2) Change the goal", "3) Quit"]
+MENU = [
+    "", "1) Change a grade", "2) Change the goal", "3) Rename this class", "4) Delete this class",
+    "5) Quit",
+]
 
 
 def run_menu(items, name, goal, ask, say, folder):
-    """Show the result and the menu until the user quits."""
+    """Show the result and the menu until the user quits (raises Quit).
+
+    Returns only if the class was deleted, so the caller can go back to the saved-class list.
+    """
     while True:
         for line in screen(items, name, goal) + MENU:
             say(line)
-        choice = _ask(ask, "Choose 1, 2 or 3: ").strip()
+        choice = _ask(ask, "Choose 1 to 5: ").strip()
         if choice == "1":
             items = change_a_grade(items, ask, say)
             save_class(folder, name, items)
@@ -189,10 +226,56 @@ def run_menu(items, name, goal, ask, say, folder):
         elif choice == "2":
             goal = ask_goal(ask, say)
         elif choice == "3":
+            name = ask_rename(name, ask, say, folder)
+        elif choice == "4":
+            if ask_delete(name, ask, say, folder):
+                say("")
+                return
+        elif choice == "5":
             raise Quit
         else:
-            say("Please type 1, 2 or 3.")
+            say("Please type 1, 2, 3, 4 or 5.")
         say("")
+
+
+# --- Renaming and deleting a saved class (spec.md sections 9 and 10) ---
+
+def ask_rename(name, ask, say, folder):
+    """Ask for a new name until it can be used, then rename. Returns the name now in use."""
+    while True:
+        typed = _ask(ask, f'New name for "{name}" (press Enter to keep it): ')
+        if not typed.strip():
+            say(f'Kept the name "{name}".')
+            return name
+        try:
+            new_name = rename_class(folder, name, typed)
+        except NameProblem as problem:
+            say(str(problem))
+            continue
+        except OSError as error:
+            say(f'"{name}" could not be renamed ({error.__class__.__name__}). It was kept as it was.')
+            return name
+        say(f'Renamed "{name}" to "{new_name}".')
+        return new_name
+
+
+def ask_delete(name, ask, say, folder):
+    """Ask first; delete only if the class's name is typed exactly. True if it was deleted."""
+    typed = _ask(
+        ask,
+        f'Are you sure you want to delete "{name}"? It will be lost. '
+        "Type its name to delete it, or press Enter to keep it: ",
+    )
+    if typed.strip() != name:
+        say(f'Kept "{name}".')
+        return False
+    try:
+        delete_class(folder, name)
+    except OSError as error:
+        say(f'"{name}" could not be deleted ({error.__class__.__name__}). It was kept.')
+        return False
+    say(f'Deleted "{name}".')
+    return True
 
 
 def change_a_grade(items, ask, say):
@@ -200,12 +283,7 @@ def change_a_grade(items, ask, say):
     for number, item in enumerate(items, start=1):
         grade = "N/A" if item.grade is None else show_number(item.grade)
         say(f"  {number}) {item.name}: {grade} out of {show_number(item.weight)}")
-    while True:
-        typed = _ask(ask, "Which one? (number): ").strip()
-        if typed.isdigit() and 1 <= int(typed) <= len(items):
-            break
-        say(f"Please type a number from 1 to {len(items)}.")
-    position = int(typed) - 1
+    position = _ask_number(ask, say, len(items), "Which one? (number): ") - 1
     item = items[position]
     while True:
         typed = _ask(ask, f"New grade for {item.name} (out of {show_number(item.weight)}, or N/A): ")
