@@ -153,6 +153,30 @@ def parse_class(text):
     return [Item(name, weight, grade) for name, weight, grade in zip(names, weights, grades)]
 
 
+class GradeProblem(Exception):
+    """A grade typed in the menu breaks a rule. The message says why."""
+
+
+def parse_grade(text, weight):
+    """Read one grade typed in the menu: a number from 0 to the weight, or N/A (None).
+
+    Same rules as line 3 of the class file (spec.md section 1). Raises GradeProblem.
+    """
+    typed = text.strip()
+    if typed.lower() == "n/a":
+        return None
+    grade = _parse_number(typed)
+    if grade is None:
+        raise GradeProblem(
+            f'I didn\'t understand "{typed}". Type a number from 0 to {show_number(weight)}, or N/A.'
+        )
+    if weight == 0 and grade != 0:
+        raise GradeProblem("This item has weight 0, so its grade must be 0 or N/A.")
+    if grade > weight:
+        raise GradeProblem(f"The grade can't be more than its weight ({show_number(weight)}).")
+    return grade
+
+
 def show_number(number):
     """Show a Fraction exactly, the way a person would write it: 20, 27.5, 20.123456.
 
