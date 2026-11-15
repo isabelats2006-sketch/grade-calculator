@@ -1,9 +1,10 @@
-"""Logic for the grade calculator: reading and checking a class file.
+"""Logic for the grade calculator: reading a class file and working out the grade.
 
 Kept apart from input/output (gradecalc.py) so it can be tested without typing.
 All numbers are Fractions, not floats, so grade edges like 89.5% are exact.
 """
 
+import math
 import re
 from dataclasses import dataclass
 from fractions import Fraction
@@ -156,3 +157,67 @@ def _show(number):
     if number.denominator == 1:
         return str(number.numerator)
     return f"{float(number):g}"
+
+
+# --- The current grade (spec.md section 3) ---
+
+# (letter, GPA, lowest rounded %), from best to worst, exactly as in problem.md.
+SCALE = [
+    ("A", "4.0", 94),
+    ("A-", "3.7", 90),
+    ("B+", "3.3", 87),
+    ("B", "3.0", 83),
+    ("B-", "2.7", 80),
+    ("C+", "2.3", 77),
+    ("C", "2.0", 73),
+    ("C-", "1.7", 70),
+    ("D+", "1.3", 67),
+    ("D", "1.0", 60),
+    ("F", "0.0", 0),
+]
+
+
+@dataclass
+class Grade:
+    """A grade so far: points earned out of the counted weight, as % and letter."""
+
+    earned: Fraction
+    out_of: Fraction
+    percent: Fraction  # exact, before rounding
+    rounded: int  # nearest whole %, .5 goes up
+    letter: str
+    gpa: str
+
+
+def round_percent(percent):
+    """Round to the nearest whole %, with .5 going up (92.5 -> 93).
+
+    Python's round() is not used: it sends .5 to the even number (round(92.5) == 92).
+    """
+    return math.floor(percent + Fraction(1, 2))
+
+
+def letter_for(rounded):
+    """The (letter, GPA) for a rounded % from 0 to 100."""
+    for letter, gpa, lowest in SCALE:
+        if rounded >= lowest:
+            return letter, gpa
+    raise ValueError(f"{rounded}% is below 0")
+
+
+def current_grade(items):
+    """The grade from the items that count so far, or None if no grades are out yet.
+
+    An item counts if its weight is above 0 and its grade is not N/A.
+    The weight > 0 check is only a safety net: parse_class already makes a weight-0
+    item's grade 0 or N/A, so it would add 0 out of 0 anyway.
+    """
+    counted = [item for item in items if item.weight > 0 and item.grade is not None]
+    out_of = sum((item.weight for item in counted), Fraction(0))
+    if out_of == 0:
+        return None
+    earned = sum((item.grade for item in counted), Fraction(0))
+    percent = earned / out_of * 100
+    rounded = round_percent(percent)
+    letter, gpa = letter_for(rounded)
+    return Grade(earned, out_of, percent, rounded, letter, gpa)
