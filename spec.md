@@ -131,20 +131,69 @@ After the result, a menu:
 ```
 1) Change a grade
 2) Change the goal
-3) Quit
+3) Rename this class
+4) Delete this class
+5) Quit
 ```
 
 - **Change a grade**: pick the item by number, then type the new grade (a number or
   `N/A`). It is checked by the same rules as the file. The saved class is updated and the
   result is shown again.
 - **Change the goal**: asks the goal question again.
+- **Rename this class** and **Delete this class**: see sections 9 and 10.
 - Weights and names are changed by editing the saved file in `saved_classes/` by hand.
+- `q` at any question still quits.
+
+## 9. Renaming a class (R13)
+
+A saved class can be renamed from two places: the menu of an open class (option 3), and
+the saved-class list (type `r`, then the class's number).
+
+- It asks `New name for "CSC 299" (press Enter to keep it): `. Enter keeps the old name.
+- The new name follows the same rules as a new class name (section 6): any characters are
+  allowed except `\ / : * ? " < > |`, which Windows doesn't allow in file names. So
+  `CSC 299 (Fall) & Lab #2`, `Français 101` and `MATH-101!` are fine. A name can't be
+  empty, end with a dot, or be a name Windows reserves (`CON`, `LPT1`, ...).
+- If another saved class already has that name (capitals ignored), it says so and asks
+  again, so renaming never replaces another class. Changing only the capitals of the same
+  class (`csc 299` to `CSC 299`) is allowed.
+- A refused name is explained and the question is asked again.
+- The saved file is renamed (`saved_classes/<new name>.txt`) and its grades are unchanged.
+  It says `Renamed "CSC 299" to "CSC 299 (Fall)".`, and the screen shows the new name.
+
+## 10. Deleting a class (R12)
+
+A saved class can be deleted from two places: the menu of an open class (option 4), and
+the saved-class list (type `d`, then the class's number).
+
+- It always asks first:
+  `Are you sure you want to delete "CSC 299"? It will be lost. Type its name to delete it, or press Enter to keep it: `
+- Only typing the class's name exactly (spaces around it are ignored, capitals are not)
+  deletes it. Anything else keeps it and says `Kept "CSC 299".`
+- When deleted, it says `Deleted "CSC 299".` and the file in `saved_classes/` is removed.
+- From the menu of an open class, the program then goes back to the saved-class list. If
+  no classes are left, it says so (as in section 6) and ends.
+
+## 11. The saved-class list, with rename and delete (R10, R12, R13)
+
+```
+Your saved classes:
+  1) CSC 299
+  2) MATH 101
+Pick a class by number, r to rename, d to delete, or q to quit:
+```
+
+- A number opens that class, as before.
+- `r` or `d` asks `Which class? (number): `, then renames or deletes it as in sections 9
+  and 10, then shows the list again.
+- Anything else says `Please type a number from 1 to 2.` (with `r`, `d` and `q` in the
+  question) and asks again.
 
 ## 8. Tests
 
 `python -m pytest`. Tests cover the logic: reading and checking the file, the grade and
-rounding, the goal input, the "needed" math, and saving/loading. The screen layout is not
-tested.
+rounding, the goal input, the "needed" math, and saving/loading, renaming and deleting. The screen layout is
+not tested.
 
 ## Decisions I made that problem.md doesn't say (please check)
 
@@ -156,3 +205,13 @@ tested.
 5. When the goal can't be reached, it also shows the best grade still possible.
 6. Saved classes live in `saved_classes/`, one file per class, and are kept off GitHub.
 7. Weights and names are edited by hand, not through the menu.
+
+### Round 2 (R12, R13)
+
+8. Rename and delete are in both the open-class menu and the saved-class list.
+9. "Special characters within reason" means every character Windows allows in a file name.
+10. Deleting needs the class's name typed exactly; anything else keeps it.
+11. Renaming to a name another class already has is refused, never a replacement.
+12. Quit moves from 3 to 5 in the menu so it stays last; `q` still quits anywhere.
+13. Pressing Enter at the rename question keeps the old name.
+14. After deleting the open class, the program goes back to the saved-class list.
