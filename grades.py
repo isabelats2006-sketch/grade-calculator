@@ -221,3 +221,130 @@ def current_grade(items):
     rounded = round_percent(percent)
     letter, gpa = letter_for(rounded)
     return Grade(earned, out_of, percent, rounded, letter, gpa)
+
+
+# --- The goal and what is needed to reach it (spec.md section 4) ---
+
+class GoalProblem(Exception):
+    """What the user typed as a goal can't be understood. The message says why."""
+
+
+@dataclass
+class Goal:
+    """A goal: the lowest rounded % that reaches it, and how to show it."""
+
+    lowest: int  # the goal is reached when the rounded final % is at least this
+    label: str  # "A- (3.7)" or "91%"
+    with_article: str  # "an A-", "a B" or "91%", for sentences like "to get an A-"
+
+
+def _letter_goal(letter, gpa, lowest):
+    article = "an" if letter[0] in "AF" else "a"
+    return Goal(lowest, f"{letter} ({gpa})", f"{article} {letter}")
+
+
+def parse_goal(text):
+    """Read a goal typed as a letter (A-), a GPA (3.7) or a percent (90% or 90).
+
+    A number of 4 or less is a GPA; above 4 it is a percent. Raises GoalProblem.
+    """
+    typed = text.strip()
+    if not typed:
+        raise GoalProblem("Please type a goal, like A-, 3.7 or 90%.")
+
+    for letter, gpa, lowest in SCALE:
+        if typed.upper() == letter:
+            return _letter_goal(letter, gpa, lowest)
+
+    is_percent = typed.endswith("%")
+    number = _parse_number(typed.rstrip("%").strip())
+    if number is None:
+        raise GoalProblem(
+            f'I didn\'t understand "{typed}". Type a letter (A-), a GPA (3.7) or a percent (90%).'
+        )
+
+    if not is_percent and number <= 4:
+        for letter, gpa, lowest in SCALE:
+            if number == Fraction(gpa):
+                return _letter_goal(letter, gpa, lowest)
+        gpas = ", ".join(gpa for _, gpa, _ in SCALE)
+        raise GoalProblem(f"{typed} isn't a GPA on the scale. The GPAs are: {gpas}.")
+
+    if number > 100:
+        raise GoalProblem("A goal can't be more than 100%.")
+    shown = _show(number)
+    # A rounded % of at least ceil(number) reaches the goal (90.5% needs 91%).
+    return Goal(math.ceil(number), f"{shown}%", f"{shown}%")
+
+
+@dataclass
+class Needed:
+    """What it takes to reach the goal.
+
+    kind is one of:
+      "need"        -> percent is the % needed on every N/A item
+      "already"     -> the goal is reached even with 0 on the rest
+      "unreachable" -> even 100% on the rest is not enough; best_rounded is the best possible
+      "done"        -> nothing is N/A any more; final is the final grade
+    """
+
+    kind: str
+    remaining: list  # names of the N/A items
+    percent: int | None = None
+    best_rounded: int | None = None
+    final: Grade | None = None
+
+
+def needed_for(items, goal):
+    """Work out the same % needed on every N/A item to reach the goal.
+
+    The weights add up to 100, so the final grade out of 100 is
+    points earned + needed % x (weight of the N/A items).
+    Because of rounding, a final of goal - 0.5 is already enough.
+    """
+    remaining = [item for item in items if item.weight > 0 and item.grade is None]
+    names = [item.name for item in remaining]
+    if not remaining:
+        return Needed("done", names, final=current_grade(items))
+
+    earned = sum(
+        (item.grade for item in items if item.weight > 0 and item.grade is not None),
+        Fraction(0),
+    )
+    weight_left = sum((item.weight for item in remaining), Fraction(0))
+    exact = (goal.lowest - Fraction(1, 2) - earned) / weight_left * 100
+
+    if exact <= 0:
+        return Needed("already", names)
+    percent = math.ceil(exact)  # round UP, so following it really reaches the goal
+    if percent > 100:
+        return Needed("unreachable", names, best_rounded=round_percent(earned + weight_left))
+    return Needed("need", names, percent=percent)
+
+
+def _join_names(names):
+    """'final', 'final and project', 'final, project and quizzes'."""
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def describe_needed(needed, goal):
+    """The sentence shown to the user about reaching the goal."""
+    if needed.kind == "need":
+        return (
+            f"You need at least {needed.percent}% on {_join_names(needed.remaining)} "
+            f"to get {goal.with_article}."
+        )
+    if needed.kind == "already":
+        return f"You already have {goal.with_article} even if you get 0 on the rest."
+    if needed.kind == "unreachable":
+        letter, _ = letter_for(needed.best_rounded)
+        start = goal.with_article[0].upper() + goal.with_article[1:]
+        return (
+            f"{start} is not reachable anymore, even with 100% on the rest. "
+            f"The best you can get is {letter} ({needed.best_rounded}%)."
+        )
+    final = needed.final
+    reached = "reached" if final.rounded >= goal.lowest else "did not reach"
+    return f"Your final grade is {final.letter}. You {reached} your goal of {goal.label}."
