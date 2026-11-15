@@ -15,6 +15,8 @@ A command-line app for my CSC 299 final project. Read `problem.md` (what it must
   each test names the ID it checks.
 - **Commits:** one change per commit. The message says what changed and why. Never
   "update", "fix", "wip" or similar. Never undo or amend a commit.
+- **Show me every commit message before committing**, and wait for my OK. The assignment
+  says I must read assistant-written messages before they are committed.
 - **Push at least once on every day of work.**
 - **Never in the repo:** `.jsonl` transcripts, `.venv`, `node_modules`, API keys or
   passwords, `saved_classes/` (real grades), or any personal info. The repo is public.
