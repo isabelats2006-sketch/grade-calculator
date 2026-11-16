@@ -32,6 +32,8 @@ homework / midterm / final / attendance / project
   - A grade can't be below 0 or above its weight.
 - An item with weight 0 doesn't exist in this class. Its grade must be 0 or N/A, and it is
   left out of every calculation.
+- A category split into parts (R17) has its name repeated, side by side, once per part,
+  each with its own weight and grade. See section 15.
 - Anything after `=` on a line is ignored, so notes like `= total weight` are allowed.
   Blank lines are ignored.
 
@@ -108,9 +110,19 @@ GOAL = B (3.0) // CURRENT GRADE = C+ (2.3), 79%
 homework / midterm / final / attendance / project
 30         30        20      10           10       = total weight
 20         25        N/A     10           N/A      = 55 out of 70 = 79% = C+ (2.3)
+-------------------- === --------------------
+homework:       20 out of 30 = 67%
+midterm:        25 out of 30 = 83%
+final:          N/A
+attendance:     10 out of 10 = 100%
+project:        N/A
+TOTAL:          55 out of 70 = 79%
 
 You need at least 92% on final and project to get a B.
 ```
+
+The list under the dashed line is each item's own percentage (section 14). When a
+category is split, a row of numbers is shown above the names (section 15).
 
 ## 6. Saving classes by name (bullet 12)
 
@@ -134,7 +146,8 @@ After the result, a menu:
 3) Rename this class
 4) Delete this class
 5) What if (try grades without saving)
-6) Quit
+6) Split a category
+7) Quit
 ```
 
 - **Change a grade**: pick the item by number, then type the new grade (a number or
@@ -143,7 +156,8 @@ After the result, a menu:
 - **Change the goal**: asks the goal question again.
 - **Rename this class** and **Delete this class**: see sections 9 and 10.
 - **What if**: see section 12.
-- A wrong choice says `Please type 1, 2, 3, 4, 5 or 6.` and asks again.
+- **Split a category**: see section 15 (added in round 4; Quit moved from 6 to 7).
+- A wrong choice says `Please type 1, 2, 3, 4, 5, 6 or 7.` and asks again.
 - Weights and names are changed by editing the saved file in `saved_classes/` by hand.
 - `q` at any question still quits.
 
@@ -215,6 +229,8 @@ Choose 1 or 2:
   (section 7): pick any item, N/A or already out, and type a grade, checked by the same
   rules. The screen is shown again with the tried grade, the current grade and what is
   still needed for the goal. Grades can be tried as many times as you like.
+- Each part of a split category (section 15) is its own item here, so a grade can be
+  tried on `homework 1.2` alone. Splitting itself is done outside the mode, and is saved.
 - Nothing tried is ever saved: `saved_classes/` is not written while in this mode.
 - **Leave what-if mode** says `Left what-if mode. Your real grades are back.` and shows
   the normal screen and menu with the real grades, as they were before.
@@ -248,12 +264,127 @@ Your saved classes:
 - With 0 or 1 saved classes it is not shown.
 - It is shown every time the list is shown, so it is up to date after a rename or delete.
 
+## 14. Each item's percentage (R16)
+
+R16: "Each item has their own percentage under them, so that the user can see how well (or
+bad) their doing in that specific category."
+
+Under the table (section 5), after a dashed line, one line per item in the table's order,
+then a TOTAL line. With the R16 example's grades:
+
+```
+homework / midterm / final / attendance
+20         30        40      10           = total weight
+15         20        N/A     10           = 45 out of 60 = 75% = C (2.0)
+-------------------- === --------------------
+homework:       15 out of 20 = 75%
+midterm:        20 out of 30 = 67%
+final:          N/A
+attendance:     10 out of 10 = 100%
+TOTAL:          45 out of 60 = 75%
+```
+
+- The dashed line is exactly `-------------------- === --------------------`.
+- An item's % is its grade ÷ its weight × 100, rounded like the grade (section 3: nearest
+  whole %, .5 goes up), so 20 out of 30 is 67%.
+- An item not out yet shows `N/A`.
+- An item with weight 0 (not in this class, R4) shows `not in this class`.
+- TOTAL is the current grade (section 3): the counted points out of the counted weight.
+  If nothing is out yet it shows `no grades out yet`.
+- The values start in the same column: the labels are padded to at least 16 characters
+  (as in the example), or more if a label is longer. The `=` signs line up too, so
+  `8 out of 10` gets one extra space when another line has `20 out of 30`.
+- It is shown on the normal screen and in what-if mode (with the tried grades). Then, after
+  a blank line, the "You need..." sentence (section 4).
+
+## 15. Splitting a category into parts (R17)
+
+R17: "Any category, aside form Midterm and Final (that should ALWAYS BE 2.0 and 3.0), can
+be broken into smaller categories. The user has to choose to do this, if they dont, the
+normal case is the one presented preeviously."
+
+**Numbers.** Categories are numbered in the file's order: homework 1, midterm 2, final 3,
+attendance 4, and any others 5, 6, ... Each part of a category is X.0, X.1, ... up to X.9,
+so a category has at most 10 parts. A category that is not split is X.0. Midterm is always
+2.0 and final is always 3.0: they can't be split.
+
+**In the class file** (and the saved file), a split category repeats its name, side by
+side, once per part. Each part has its own weight and grade. It is still 3 lines, and the
+numbers are not written in the file; the program works them out from the order:
+
+```
+homework / homework / midterm / final / attendance
+10         10         30        40      10
+8          N/A        20        N/A     10
+```
+
+- Names are compared with capitals ignored (`Homework / homework` are two parts of one
+  category). Different spellings are different names, so `homework / hw` is not a split.
+- New checks, explained with the line number like every file problem (section 2):
+  - `Line 1: "midterm" is there 2 times, but midterm and final can't be split into parts.`
+  - `Line 1: "homework" is split into 11 parts, but a category can have at most 10 (1.0 to 1.9).`
+  - `Line 1: "project" is in more than one place. The parts of a split category must be side by side.`
+- The name-order rule (section 2) is checked on categories: the first four categories must
+  be homework, midterm, final, attendance.
+- The weights (all parts included) must still add up to exactly 100, and each part follows
+  the same weight and grade rules as any item.
+
+**On the screen**, when at least one category has 2 or more parts, a row of numbers is
+shown above the names, one for every column. When nothing is split, there is no numbers
+row and the screen is as in section 5.
+
+```
+1.0        1.1        2.0       3.0     4.0
+homework / homework / midterm / final / attendance
+10         10         30        40      10           = total weight
+8          N/A        20        N/A     10           = 38 out of 50 = 76% = C (2.0)
+-------------------- === --------------------
+homework 1.0:   8 out of 10  = 80%
+homework 1.1:   N/A
+midterm:        20 out of 30 = 67%
+final:          N/A
+attendance:     10 out of 10 = 100%
+TOTAL:          38 out of 50 = 76%
+```
+
+- In the list (section 14), only parts of a split category show their number
+  (`homework 1.0:`); other items show just their name (`midterm:`).
+- The same labels are used in the "You need..." sentence ("You need at least 85% on
+  homework 1.1 and final to get a B.") and in the Change a grade and Try a grade lists.
+
+**Split a category** (menu option 6):
+
+```
+Which category? (midterm and final can't be split)
+  1) homework (1), weight 20
+  2) attendance (4), weight 10
+  3) project (5), weight 10, in 2 parts
+Which one? (number):
+```
+
+- It asks `How many parts? (2 to 10, or 1 to join it back into one): `. Anything else
+  says `Please type a number from 1 to 10.` and asks again.
+- Then the weight of each part, in order:
+  `Weight of homework 1.0 (the 2 parts must add up to 20): `. A weight must be a number
+  above 0. If the parts don't add up to the category's weight, it says
+  `The parts add up to 15, but they must add up to 20, the weight of homework. Please type them again.`
+  and asks all the weights again, so the total stays 100.
+- Then the grade of each part, by the same rules as Change a grade:
+  `Grade for homework 1.0 (out of 10, or N/A): `.
+- With 1 part, no weight is asked (it is the category's weight); only its grade.
+- The parts replace the category's old item(s), so splitting an already split category
+  redoes it from the start. The saved class is updated (`Saved.`) and the screen is shown
+  again.
+- A category with weight 0 (not in this class) can't be split:
+  `attendance is not in this class (weight 0), so it can't be split.`
+- `q` at any of these questions quits the program, and nothing is changed.
+
 ## 8. Tests
 
 `python -m pytest`. Tests cover the logic: reading and checking the file, the grade and
 rounding, the goal input, the "needed" math, and saving/loading, renaming and deleting,
-the Yes/No delete question, what-if mode and the GPA across classes. The screen layout is
-not tested.
+the Yes/No delete question, what-if mode, the GPA across classes, each item's percentage
+and splitting a category.
 
 ## Decisions I made that problem.md doesn't say (please check)
 
@@ -291,3 +422,29 @@ not tested.
     an average like 3.5 isn't on the scale.
 21. A saved class that can't be read is listed in the GPA block but not counted.
 22. What-if mode has only Try a grade and Leave; the goal is changed outside the mode.
+
+### Round 4 (R16, R17)
+
+23. Splitting is done with a new menu option, and splits can also be written in the class
+    file by hand. (Your choice.)
+24. In the file, a split category repeats its name side by side; the file stays 3 lines and
+    the numbers are worked out from the order. (Your choice.)
+25. Splitting asks how many parts, then each part's weight (they must add up to the
+    category's weight) and grade. (Your choice.)
+26. Splitting an already split category redoes it; 1 part joins it back. (Your choice.)
+27. The numbers row is shown only when at least one category is split. (Your choice.)
+28. An item with weight 0 shows `not in this class` in the list. (Your choice.)
+29. A split category has no combined line in the list, only its parts. (Your choice.)
+30. What-if tries grades on parts; splitting is done outside what-if and saved.
+    (Your choice.)
+31. An item's % is rounded like the grade (nearest whole %, .5 goes up).
+32. TOTAL shows `no grades out yet` when nothing is out.
+33. Split a category is option 6 and Quit moves to 7, so Quit stays last (as in decisions
+    12 and 19).
+34. Categories after attendance are numbered 5, 6, ... and can be split too, since R17
+    excludes only midterm and final.
+35. Repeated names must be side by side; a name in two places is a file problem.
+36. A part typed in the menu needs a weight above 0, and a weight-0 category can't be
+    split (there is nothing to split).
+37. The list's labels are padded to at least 16 characters and the `=` signs line up, as
+    in the R16 and R17 examples.
