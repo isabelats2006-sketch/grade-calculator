@@ -110,6 +110,55 @@ def labels(items):
     ]
 
 
+class SplitProblem(Exception):
+    """A split typed in the menu breaks a rule (spec.md section 15). The message says why."""
+
+
+def splittable(items):
+    """The categories that can be split: (category number, positions), midterm and final
+    left out. [(1, [0]), (4, [3]), (5, [4, 5])] for hw, midterm, final, attendance, 2 projects.
+    """
+    return [
+        (number, group)
+        for number, group in enumerate(categories(items), start=1)
+        if items[group[0]].name.lower() not in UNSPLITTABLE
+    ]
+
+
+def parse_part_weight(text):
+    """Read one part's weight typed in the menu: a number above 0. Raises SplitProblem."""
+    typed = text.strip()
+    weight = _parse_number(typed)
+    if weight is None:
+        raise SplitProblem(f'I didn\'t understand "{typed}". Type a number above 0, like 10.')
+    if weight == 0:
+        raise SplitProblem("A part's weight must be above 0.")
+    return weight
+
+
+def split_category(items, group, parts):
+    """Replace the category at these positions with these parts (Items). Returns new items.
+
+    The parts must be 1 to 10, keep the category's name, and their weights must add up to
+    the category's weight, so the weights still add up to 100. Raises SplitProblem.
+    """
+    name = items[group[0]].name
+    if name.lower() in UNSPLITTABLE:
+        raise SplitProblem(f"{name} can't be split into parts.")
+    weight = sum((items[position].weight for position in group), Fraction(0))
+    if weight == 0:
+        raise SplitProblem(f"{name} is not in this class (weight 0), so it can't be split.")
+    if not 1 <= len(parts) <= MAX_PARTS:
+        raise SplitProblem(f"A category can have 1 to {MAX_PARTS} parts.")
+    total = sum((part.weight for part in parts), Fraction(0))
+    if total != weight:
+        raise SplitProblem(
+            f"The parts add up to {show_number(total)}, but they must add up to "
+            f"{show_number(weight)}, the weight of {name}. Please type them again."
+        )
+    return items[:group[0]] + [Item(name, p.weight, p.grade) for p in parts] + items[group[-1] + 1:]
+
+
 def parse_class(text):
     """Read the text of a class file and return its list of Items.
 

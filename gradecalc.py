@@ -12,8 +12,9 @@ from pathlib import Path
 
 from grades import (
     FileProblems, GoalProblem, GradeProblem, Item, average_gpa, current_grade,
-    describe_needed, is_split, item_percent, labels, needed_for, numbers, parse_class, parse_goal,
-    parse_grade, show_number,
+    MAX_PARTS, SplitProblem, describe_needed, is_split, item_percent, labels, needed_for, numbers,
+    parse_class, parse_goal, parse_grade, parse_part_weight, show_number, split_category,
+    splittable,
 )
 from storage import (
     NameProblem, aligned_row, check_name, class_to_text, delete_class, find_class, list_classes, load_class,
@@ -274,7 +275,7 @@ def item_lines(items, labels):
 
 MENU = [
     "", "1) Change a grade", "2) Change the goal", "3) Rename this class", "4) Delete this class",
-    "5) What if (try grades without saving)", "6) Quit",
+    "5) What if (try grades without saving)", "6) Split a category", "7) Quit",
 ]
 
 
@@ -286,7 +287,7 @@ def run_menu(items, name, goal, ask, say, folder):
     while True:
         for line in screen(items, name, goal) + MENU:
             say(line)
-        choice = _ask(ask, "Choose 1 to 6: ").strip()
+        choice = _ask(ask, "Choose 1 to 7: ").strip()
         if choice == "1":
             items = change_a_grade(items, ask, say)
             save_class(folder, name, items)
@@ -302,9 +303,15 @@ def run_menu(items, name, goal, ask, say, folder):
         elif choice == "5":
             what_if(items, name, goal, ask, say)
         elif choice == "6":
+            split = ask_split(items, ask, say)
+            if split is not None:
+                items = split
+                save_class(folder, name, items)
+                say("Saved.")
+        elif choice == "7":
             raise Quit
         else:
-            say("Please type 1, 2, 3, 4, 5 or 6.")
+            say("Please type 1, 2, 3, 4, 5, 6 or 7.")
         say("")
 
 
@@ -375,6 +382,59 @@ def ask_delete(name, ask, say, folder):
         return False
     say(f'Deleted "{name}".')
     return True
+
+
+# --- Splitting a category (spec.md section 15, R17) ---
+
+def ask_split(items, ask, say):
+    """Ask which category to split and its parts. Returns the new items, or None if the
+    category chosen can't be split (weight 0). Splitting a split category redoes it.
+    """
+    choices = splittable(items)
+    say("Which category? (midterm and final can't be split)")
+    for choice, (number, group) in enumerate(choices, start=1):
+        weight = sum(items[position].weight for position in group)
+        parts = f", in {len(group)} parts" if len(group) > 1 else ""
+        say(f"  {choice}) {items[group[0]].name} ({number}), weight {show_number(weight)}{parts}")
+    number, group = choices[_ask_number(ask, say, len(choices), "Which one? (number): ") - 1]
+    name = items[group[0]].name
+    weight = sum(items[position].weight for position in group)
+    if weight == 0:
+        say(f"{name} is not in this class (weight 0), so it can't be split.")
+        return None
+
+    count = _ask_number(ask, say, MAX_PARTS, "How many parts? (2 to 10, or 1 to join it back into one): ")
+    part_labels = [f"{name} {number}.{part}" for part in range(count)] if count > 1 else [name]
+    while True:
+        weights = [weight] if count == 1 else [
+            _ask_part_weight(ask, say, f"Weight of {label} (the {count} parts must add up to "
+                                       f"{show_number(weight)}): ")
+            for label in part_labels
+        ]
+        try:  # checks that the weights add up, before any grade is asked
+            split_category(items, group, [Item(name, w, None) for w in weights])
+            break
+        except SplitProblem as problem:
+            say(str(problem))
+    parts = []
+    for label, part_weight in zip(part_labels, weights):
+        while True:
+            typed = _ask(ask, f"Grade for {label} (out of {show_number(part_weight)}, or N/A): ")
+            try:
+                parts.append(Item(name, part_weight, parse_grade(typed, part_weight)))
+                break
+            except GradeProblem as problem:
+                say(str(problem))
+    return split_category(items, group, parts)
+
+
+def _ask_part_weight(ask, say, question):
+    """Ask for one part's weight until it is a number above 0."""
+    while True:
+        try:
+            return parse_part_weight(_ask(ask, question))
+        except SplitProblem as problem:
+            say(str(problem))
 
 
 def change_a_grade(items, ask, say):
