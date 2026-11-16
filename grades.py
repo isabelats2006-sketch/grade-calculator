@@ -252,6 +252,15 @@ def current_grade(items):
     return Grade(earned, out_of, percent, rounded, letter, gpa)
 
 
+def item_percent(item):
+    """One item's own % (spec.md section 14), rounded like the grade, or None if it has
+    no grade yet or weight 0 (not in this class).
+    """
+    if item.weight == 0 or item.grade is None:
+        return None
+    return round_percent(item.grade / item.weight * 100)
+
+
 def average_gpa(gpas):
     """The plain average of these GPAs ("4.0", "3.7", ...) as text with 2 decimals, or None.
 

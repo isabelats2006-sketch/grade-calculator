@@ -12,7 +12,7 @@ from pathlib import Path
 
 from grades import (
     FileProblems, GoalProblem, GradeProblem, Item, average_gpa, current_grade,
-    describe_needed, needed_for, parse_class, parse_goal, parse_grade, show_number,
+    describe_needed, item_percent, needed_for, parse_class, parse_goal, parse_grade, show_number,
 )
 from storage import (
     NameProblem, check_name, class_to_text, delete_class, find_class, list_classes, load_class,
@@ -228,9 +228,44 @@ def screen(items, name, goal):
         names_row,
         weights_row.ljust(width) + "= total weight",
         grades_row.ljust(width) + "= " + summary,
+        SEPARATOR,
+        *item_lines(items, [item.name for item in items]),
         "",
         describe_needed(needed_for(items, goal), goal),
     ]
+
+
+SEPARATOR = "-------------------- === --------------------"
+
+
+def item_lines(items, labels):
+    """Each item's own %, then TOTAL (spec.md section 14). labels are the names shown."""
+    rows = []  # (label, "15 out of 20" or None, what comes after it)
+    for item, label in zip(items, labels):
+        if item.weight == 0:
+            rows.append((label, None, "not in this class"))
+        elif item.grade is None:
+            rows.append((label, None, "N/A"))
+        else:
+            out_of = f"{show_number(item.grade)} out of {show_number(item.weight)}"
+            rows.append((label, out_of, f"{item_percent(item)}%"))
+    grade = current_grade(items)
+    if grade is None:
+        rows.append(("TOTAL", None, "no grades out yet"))
+    else:
+        out_of = f"{show_number(grade.earned)} out of {show_number(grade.out_of)}"
+        rows.append(("TOTAL", out_of, f"{grade.rounded}%"))
+    # Labels padded to at least 16, as in the R16 example; the = signs line up.
+    label_width = max(16, max(len(label) + 1 for label, _, _ in rows) + 3)
+    out_of_width = max((len(out_of) for _, out_of, _ in rows if out_of), default=0)
+    lines = []
+    for label, out_of, value in rows:
+        start = f"{label}:".ljust(label_width)
+        if out_of is None:
+            lines.append(start + value)
+        else:
+            lines.append(start + out_of.ljust(out_of_width) + " = " + value)
+    return lines
 
 
 MENU = [

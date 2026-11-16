@@ -61,6 +61,13 @@ def test_the_screen_matches_the_spec_example(class_file, saved):
         "homework / midterm / final / attendance / project\n"
         "30         30        20      10           10       = total weight\n"
         "20         25        N/A     10           N/A      = 55 out of 70 = 79% = C+ (2.3)\n"
+        "-------------------- === --------------------\n"
+        "homework:       20 out of 30 = 67%\n"
+        "midterm:        25 out of 30 = 83%\n"
+        "final:          N/A\n"
+        "attendance:     10 out of 10 = 100%\n"
+        "project:        N/A\n"
+        "TOTAL:          55 out of 70 = 79%\n"
         "\n"
         "You need at least 92% on final and project to get a B.\n"
     ) in printed
