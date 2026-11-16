@@ -12,10 +12,11 @@ from pathlib import Path
 
 from grades import (
     FileProblems, GoalProblem, GradeProblem, Item, average_gpa, current_grade,
-    describe_needed, item_percent, needed_for, parse_class, parse_goal, parse_grade, show_number,
+    describe_needed, is_split, item_percent, labels, needed_for, numbers, parse_class, parse_goal,
+    parse_grade, show_number,
 )
 from storage import (
-    NameProblem, check_name, class_to_text, delete_class, find_class, list_classes, load_class,
+    NameProblem, aligned_row, check_name, class_to_text, delete_class, find_class, list_classes, load_class,
     rename_class, save_class,
 )
 
@@ -221,15 +222,18 @@ def screen(items, name, goal):
         )
     names_row, weights_row, grades_row = class_to_text(items).splitlines()
     width = max(len(names_row), len(weights_row), len(grades_row)) + 2
+    # R17: the numbers row (1.0 1.1 2.0 ...) only when a category is split.
+    numbers_row = [aligned_row(items, numbers(items))] if is_split(items) else []
     return [
         name,
         f"GOAL = {goal.label} // CURRENT GRADE = {now}",
         "",
+        *numbers_row,
         names_row,
         weights_row.ljust(width) + "= total weight",
         grades_row.ljust(width) + "= " + summary,
         SEPARATOR,
-        *item_lines(items, [item.name for item in items]),
+        *item_lines(items, labels(items)),
         "",
         describe_needed(needed_for(items, goal), goal),
     ]
@@ -375,13 +379,16 @@ def ask_delete(name, ask, say, folder):
 
 def change_a_grade(items, ask, say):
     """Let the user pick an item and type its new grade. Returns the new list of items."""
-    for number, item in enumerate(items, start=1):
+    shown = labels(items)  # "homework 1.0" for a part of a split category (R17)
+    for number, (item, label) in enumerate(zip(items, shown), start=1):
         grade = "N/A" if item.grade is None else show_number(item.grade)
-        say(f"  {number}) {item.name}: {grade} out of {show_number(item.weight)}")
+        say(f"  {number}) {label}: {grade} out of {show_number(item.weight)}")
     position = _ask_number(ask, say, len(items), "Which one? (number): ") - 1
     item = items[position]
     while True:
-        typed = _ask(ask, f"New grade for {item.name} (out of {show_number(item.weight)}, or N/A): ")
+        typed = _ask(
+            ask, f"New grade for {shown[position]} (out of {show_number(item.weight)}, or N/A): "
+        )
         try:
             new_grade = parse_grade(typed, item.weight)
             break

@@ -6,6 +6,7 @@ All numbers are Fractions, not floats, so grade edges like 89.5% are exact.
 
 import math
 import re
+from collections import Counter
 from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
@@ -19,6 +20,10 @@ REQUIRED_NAMES = [
 ]
 
 _NUMBER = re.compile(r"\d+(\.\d+)?")
+
+# R17: these are always 2.0 and 3.0; every other category can have up to 10 parts (X.0-X.9).
+UNSPLITTABLE = ("midterm", "final")
+MAX_PARTS = 10
 
 
 @dataclass
@@ -59,6 +64,52 @@ def _quoted_names(allowed):
     return f"{first} (or {others})"
 
 
+def _group_positions(names):
+    """Positions of the names, grouped into categories: a name repeated side by side
+    (capitals ignored) is one category in parts. ["hw", "HW", "midterm"] -> [[0, 1], [2]].
+    """
+    groups = []
+    for position, name in enumerate(names):
+        if groups and names[groups[-1][0]].lower() == name.lower():
+            groups[-1].append(position)
+        else:
+            groups.append([position])
+    return groups
+
+
+# --- Categories and their numbers (spec.md section 15, R17) ---
+
+def categories(items):
+    """The items' positions grouped into categories, as in the file: [[0, 1], [2], ...]."""
+    return _group_positions([item.name for item in items])
+
+
+def is_split(items):
+    """True if at least one category has 2 or more parts."""
+    return any(len(group) > 1 for group in categories(items))
+
+
+def _numbered(items):
+    """(number, parts in its category) for each item: ("1.0", 2), ("1.1", 2), ("2.0", 1)."""
+    found = []
+    for number, group in enumerate(categories(items), start=1):
+        found += [(f"{number}.{part}", len(group)) for part in range(len(group))]
+    return found
+
+
+def numbers(items):
+    """Each item's number: "1.0", "1.1", "2.0", ... (category number . part)."""
+    return [number for number, _ in _numbered(items)]
+
+
+def labels(items):
+    """How each item is named to the user: "homework 1.0" if it is a part, else "midterm"."""
+    return [
+        f"{item.name} {number}" if parts > 1 else item.name
+        for item, (number, parts) in zip(items, _numbered(items))
+    ]
+
+
 def parse_class(text):
     """Read the text of a class file and return its list of Items.
 
@@ -77,20 +128,43 @@ def parse_class(text):
     problems = []
     (names_line, names_text), (weights_line, weights_text), (grades_line, grades_text) = lines
 
-    # Line 1: names
+    # Line 1: names. A name repeated side by side is one category split into parts (R17),
+    # so the name rules are checked on categories (spec.md section 15).
     names = [name.strip() for name in names_text.split("/")]
     if any(name == "" for name in names):
         problems.append(f"Line {names_line}: there is an empty name (two / with nothing between them).")
-    if len(names) < len(REQUIRED_NAMES):
+    groups = _group_positions(names)
+    if len(groups) < len(REQUIRED_NAMES):
         problems.append(
             f"Line {names_line}: it needs at least homework / midterm / final / attendance, "
-            f"but it has only {len(names)} name(s)."
+            f"but it has only {len(groups)} name(s)."
         )
     for position, allowed in enumerate(REQUIRED_NAMES):
-        if position < len(names) and names[position].lower() not in allowed:
+        if position < len(groups) and names[groups[position][0]].lower() not in allowed:
+            first = groups[position][0]
             problems.append(
-                f"Line {names_line}: name {position + 1} should be {_quoted_names(allowed)}, "
-                f'but it is "{names[position]}".'
+                f"Line {names_line}: name {first + 1} should be {_quoted_names(allowed)}, "
+                f'but it is "{names[first]}".'
+            )
+    places = Counter(names[group[0]].lower() for group in groups if names[group[0]])
+    reported = set()
+    for number, group in enumerate(groups, start=1):
+        name = names[group[0]]
+        if name.lower() in UNSPLITTABLE and len(group) > 1:
+            problems.append(
+                f'Line {names_line}: "{name}" is there {len(group)} times, '
+                "but midterm and final can't be split into parts."
+            )
+        elif len(group) > MAX_PARTS:
+            problems.append(
+                f'Line {names_line}: "{name}" is split into {len(group)} parts, '
+                f"but a category can have at most {MAX_PARTS} ({number}.0 to {number}.9)."
+            )
+        if places[name.lower()] > 1 and name.lower() not in reported:
+            reported.add(name.lower())  # said once, even if it is in 3 places
+            problems.append(
+                f'Line {names_line}: "{name}" is in more than one place. '
+                "The parts of a split category must be side by side."
             )
 
     # Lines 2 and 3 must have one value per name
@@ -354,7 +428,11 @@ def needed_for(items, goal):
     Because of rounding, a final of goal - 0.5 is already enough.
     """
     remaining = [item for item in items if item.weight > 0 and item.grade is None]
-    names = [item.name for item in remaining]
+    # "homework 1.1" for a part of a split category (R17), else just the name.
+    names = [
+        label for item, label in zip(items, labels(items))
+        if item.weight > 0 and item.grade is None
+    ]
     if not remaining:
         return Needed("done", names, final=current_grade(items))
 

@@ -37,20 +37,30 @@ def check_name(name):
     return name
 
 
+def aligned_row(items, values):
+    """One value per item, each lined up under its item's name in the names row.
+
+    Used for the weights and grades, and for the numbers row on the screen (R17).
+    """
+    widths = [len(item.name) + 3 for item in items]  # each name plus " / "
+    # At least one space after each value, even one longer than its name
+    # (20.123456 under "hw" once came out as "20.123456N/A").
+    cells = [value.ljust(width - 1) + " " for value, width in zip(values[:-1], widths)]
+    return "".join(cells) + values[-1]
+
+
 def class_to_text(items):
-    """The three-line file text for these items, with values lined up under the names."""
+    """The three-line file text for these items, with values lined up under the names.
+
+    A split category (R17) is just its name repeated, so it needs nothing special here.
+    """
     names = [item.name for item in items]
-    widths = [len(name) + 3 for name in names]  # each name plus " / "
-
-    def row(values):
-        # At least one space after each value, even one longer than its name
-        # (20.123456 under "hw" once came out as "20.123456N/A").
-        cells = [value.ljust(width - 1) + " " for value, width in zip(values[:-1], widths)]
-        return "".join(cells) + values[-1]
-
     weights = [show_number(item.weight) for item in items]
     grades = ["N/A" if item.grade is None else show_number(item.grade) for item in items]
-    return " / ".join(names) + "\n" + row(weights) + "\n" + row(grades) + "\n"
+    return (
+        " / ".join(names) + "\n" + aligned_row(items, weights) + "\n"
+        + aligned_row(items, grades) + "\n"
+    )
 
 
 def list_classes(folder):
