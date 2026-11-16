@@ -45,3 +45,9 @@ I have a lot on my plate right now and it would be much easier if I didnt have t
 
 - R12: It can delete a saved class and it double checks if the user wants to actually delete the class by asking: are you sure you want to delete it? it will be lost
 - R13: It can rename any class at any point, special characters are allowed within reason
+
+# Round 3 requirements
+
+- R12 (CHANGED): It can delete a saved class and it double checks if the user wants to actually delete the class by asking: are you sure you want to delete it? it will be lost. Instead of typing the class name, you should type "Yes" or "No" to confirm the deletion
+- R14: If the user has more then one class, then it can see all the GPA across all class together
+- R15: The user can run an what if. It should be a separate option where he chooses the grades he will have and it will no be saved, once he is quits that mode, the grades should go back to what they were
