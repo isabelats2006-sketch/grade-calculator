@@ -30,6 +30,11 @@ A command-line app for my CSC 299 final project. Read `problem.md` (what it must
   to run the tests.
 - **Runs with one command** on my computer. No API key, login or paid service.
 - **Ask before installing, changing, deleting, adding or modifying anything.**
+- **Quote my requirements exactly** (in decision records, spec.md, anywhere), typos
+  included. Don't fix my wording inside quotes.
+- **Never run the program against the real `saved_classes/`.** Tests pass
+  `folder=tmp_path`. For a real run, copy `gradecalc.py`, `grades.py`, `storage.py` and an
+  example file into the scratchpad and run it there.
 
 ## How to run
 
@@ -48,6 +53,13 @@ python -m pytest                   # run the tests
   correctly (with floats, 115 came out as 114.99999999999999).
 - Rounding: nearest whole %, .5 goes up (Python's `round()` rounds .5 to even, so don't
   use it).
-- For multi-line Python edit scripts, write the script to a file in the scratchpad and run
-  it. Inline `python - <<'EOF'` in the Bash tool once failed to parse, and once turned `\n`
-  inside a test string into real line breaks.
+- For multi-line Python edit scripts, write the script to a file in the scratchpad **with
+  the Write tool** and run it. Inline `python - <<'EOF'` in the Bash tool once failed to
+  parse, and once turned `\n` inside a test string into real line breaks. Writing the
+  script file with a Bash heredoc (`cat > x.py <<'EOF'`) did the same in round 3.
+- `sed -i` in Git Bash rewrites the whole file's line endings, so `git diff` then shows
+  every line as changed. When breaking code on purpose, copy the file to the scratchpad
+  first, restore from that copy, and check it with `cmp` or `sha256sum`, not `git diff`.
+- **When two changes end up in the same files** (and `git add -p` can't be used, since it
+  is interactive), save a snapshot of each step's files in the scratchpad, then commit them
+  one at a time, running the tests at each step.
