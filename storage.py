@@ -6,7 +6,7 @@ in the same three-line layout as a class file, so it can also be edited by hand.
 
 from pathlib import Path
 
-from grades import parse_class, show_number
+from grades import categories, parse_class, show_number
 
 # Characters Windows does not allow in file names.
 BAD_CHARACTERS = '\\/:*?"<>|'
@@ -53,13 +53,19 @@ def class_to_text(items):
     """The three-line file text for these items, with values lined up under the names.
 
     A split category (R17) is just its name repeated, so it needs nothing special here.
+    A category that drops or keeps a grade (R19) gets a line after them, like
+    "homework: drop lowest"; with none, the text is the 3 lines, as before round 5.
     """
     names = [item.name for item in items]
     weights = [show_number(item.weight) for item in items]
     grades = ["N/A" if item.grade is None else show_number(item.grade) for item in items]
+    rules = [
+        f"{items[group[0]].name}: {items[group[0]].rule}\n"
+        for group in categories(items) if items[group[0]].rule is not None
+    ]
     return (
         " / ".join(names) + "\n" + aligned_row(items, weights) + "\n"
-        + aligned_row(items, grades) + "\n"
+        + aligned_row(items, grades) + "\n" + "".join(rules)
     )
 
 

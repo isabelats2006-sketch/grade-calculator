@@ -8,10 +8,12 @@ storage.py. `ask` and `say` are passed in so tests can type answers and read the
 """
 
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from grades import (
-    FileProblems, GoalProblem, GradeProblem, Item, average_gpa, current_grade,
+    DROP_LOWEST, KEEP_HIGHEST, FileProblems, GoalProblem, GradeProblem, Item, average_gpa,
+    categories, current_grade, dropped,
     MAX_PARTS, SplitProblem, describe_needed, is_split, item_percent, labels, needed_for, numbers,
     parse_class, parse_goal, parse_grade, parse_part_weight, show_number, split_category,
     splittable,
@@ -221,7 +223,7 @@ def screen(items, name, goal):
             f"{show_number(grade.earned)} out of {show_number(grade.out_of)} = "
             f"{grade.rounded}% = {grade.letter} ({grade.gpa})"
         )
-    names_row, weights_row, grades_row = class_to_text(items).splitlines()
+    names_row, weights_row, grades_row = class_to_text(items).splitlines()[:3]
     width = max(len(names_row), len(weights_row), len(grades_row)) + 2
     # R17: the numbers row (1.0 1.1 2.0 ...) only when a category is split.
     numbers_row = [aligned_row(items, numbers(items))] if is_split(items) else []
@@ -244,16 +246,22 @@ SEPARATOR = "-------------------- === --------------------"
 
 
 def item_lines(items, labels):
-    """Each item's own %, then TOTAL (spec.md section 14). labels are the names shown."""
+    """Each item's own %, then TOTAL (spec.md section 14). labels are the names shown.
+
+    A part not counted (R19) has "   (dropped)" after its %, and each category that drops
+    or keeps a grade has a line under TOTAL saying so (spec.md section 17).
+    """
+    left_out = dropped(items)
     rows = []  # (label, "15 out of 20" or None, what comes after it)
-    for item, label in zip(items, labels):
+    for position, (item, label) in enumerate(zip(items, labels)):
         if item.weight == 0:
             rows.append((label, None, "not in this class"))
         elif item.grade is None:
             rows.append((label, None, "N/A"))
         else:
             out_of = f"{show_number(item.grade)} out of {show_number(item.weight)}"
-            rows.append((label, out_of, f"{item_percent(item)}%"))
+            mark = "   (dropped)" if position in left_out else ""
+            rows.append((label, out_of, f"{item_percent(item)}%{mark}"))
     grade = current_grade(items)
     if grade is None:
         rows.append(("TOTAL", None, "no grades out yet"))
@@ -270,7 +278,14 @@ def item_lines(items, labels):
             lines.append(start + value)
         else:
             lines.append(start + out_of.ljust(out_of_width) + " = " + value)
-    return lines
+    return lines + [
+        f"{items[group[0]].name} {RULE_TEXT[items[group[0]].rule]}."
+        for group in categories(items) if items[group[0]].rule is not None
+    ]
+
+
+# How each R19 choice is described: under TOTAL, in the menu and in the history.
+RULE_TEXT = {DROP_LOWEST: "drops its lowest grade", KEEP_HIGHEST: "keeps only its highest grade"}
 
 
 MENU = [
@@ -455,7 +470,7 @@ def change_a_grade(items, ask, say):
         except GradeProblem as problem:
             say(str(problem))
     changed = list(items)
-    changed[position] = Item(item.name, item.weight, new_grade)
+    changed[position] = replace(item, grade=new_grade)  # keeps the drop/keep choice (R19)
     return changed
 
 

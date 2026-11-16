@@ -7,7 +7,7 @@ All numbers are Fractions, not floats, so grade edges like 89.5% are exact.
 import math
 import re
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from fractions import Fraction
 
@@ -25,14 +25,24 @@ _NUMBER = re.compile(r"\d+(\.\d+)?")
 UNSPLITTABLE = ("midterm", "final")
 MAX_PARTS = 10
 
+# R19: how a split category counts its parts. None (no line in the file) counts them all.
+DROP_LOWEST = "drop lowest"
+KEEP_HIGHEST = "keep highest"
+RULES = (DROP_LOWEST, KEEP_HIGHEST)
+
 
 @dataclass
 class Item:
-    """One grading item, such as homework: its weight and points earned (None = N/A)."""
+    """One grading item, such as homework: its weight and points earned (None = N/A).
+
+    rule is DROP_LOWEST, KEEP_HIGHEST or None (count all parts, the standard). It belongs
+    to the whole category, so every part of a split category has the same one (R19).
+    """
 
     name: str
     weight: Fraction
     grade: Fraction | None
+    rule: str | None = None
 
 
 class FileProblems(Exception):
@@ -156,7 +166,56 @@ def split_category(items, group, parts):
             f"The parts add up to {show_number(total)}, but they must add up to "
             f"{show_number(weight)}, the weight of {name}. Please type them again."
         )
-    return items[:group[0]] + [Item(name, p.weight, p.grade) for p in parts] + items[group[-1] + 1:]
+    # The drop/keep choice (R19) stays with 2 or more parts; 1 part has nothing to drop.
+    rule = items[group[0]].rule if len(parts) > 1 else None
+    new_parts = [Item(name, p.weight, p.grade, rule) for p in parts]
+    return items[:group[0]] + new_parts + items[group[-1] + 1:]
+
+
+def with_rule(items, group, rule):
+    """The items with this category counting its parts by rule (R19, spec.md section 17):
+    DROP_LOWEST, KEEP_HIGHEST or None (count all). Raises SplitProblem if it isn't split.
+    """
+    if len(group) < 2:
+        raise SplitProblem(f"{items[group[0]].name} is not split into parts, so no grade can be dropped.")
+    changed = list(items)
+    for position in group:
+        changed[position] = replace(items[position], rule=rule)
+    return changed
+
+
+def _read_rules(rule_lines, names, groups):
+    """Read the lines after the 3 lines, like "homework: drop lowest" (R19).
+
+    Returns ({category name in lowercase: rule}, [problems]).
+    """
+    rules, said_on, problems = {}, {}, []
+    for line_number, text in rule_lines:
+        name, colon, how = text.rpartition(":")
+        name, how = name.strip(), " ".join(how.lower().split())
+        if not colon or not name or how not in RULES:
+            problems.append(
+                f'Line {line_number}: "{text}" isn\'t understood. Write it like '
+                '"homework: drop lowest" or "homework: keep highest".'
+            )
+            continue
+        group = next((g for g in groups if names[g[0]].lower() == name.lower()), None)
+        if group is None:
+            problems.append(f'Line {line_number}: there is no category called "{name}" in line 1.')
+        elif len(group) < 2:
+            problems.append(
+                f'Line {line_number}: "{names[group[0]]}" is not split into parts, so no grade '
+                "can be dropped. Split it first or remove this line."
+            )
+        elif name.lower() in said_on:
+            problems.append(
+                f'Line {line_number}: "{names[group[0]]}" already has a line saying how to '
+                f"count it (line {said_on[name.lower()]})."
+            )
+        else:
+            said_on[name.lower()] = line_number
+            rules[name.lower()] = how
+    return rules, problems
 
 
 def parse_class(text):
@@ -169,13 +228,13 @@ def parse_class(text):
         for number, line in enumerate(text.splitlines(), start=1)
         if _without_note(line)
     ]
-    if len(lines) != 3:
+    if len(lines) < 3:
         raise FileProblems([
             f"The file should have 3 lines (names, weights, grades), but it has {len(lines)}."
         ])
 
     problems = []
-    (names_line, names_text), (weights_line, weights_text), (grades_line, grades_text) = lines
+    (names_line, names_text), (weights_line, weights_text), (grades_line, grades_text) = lines[:3]
 
     # Line 1: names. A name repeated side by side is one category split into parts (R17),
     # so the name rules are checked on categories (spec.md section 15).
@@ -215,6 +274,9 @@ def parse_class(text):
                 f'Line {names_line}: "{name}" is in more than one place. '
                 "The parts of a split category must be side by side."
             )
+
+    # Lines 4 and after: how a split category counts its parts (R19, spec.md section 17).
+    rules, rule_problems = _read_rules(lines[3:], names, groups)
 
     # Lines 2 and 3 must have one value per name
     weight_texts = weights_text.split()
@@ -271,9 +333,13 @@ def parse_class(text):
                     f"but it can't be more than its weight ({show_number(weight)})."
                 )
 
+    problems += rule_problems  # after the weights and grades, in line order
     if problems:
         raise FileProblems(problems)
-    return [Item(name, weight, grade) for name, weight, grade in zip(names, weights, grades)]
+    return [
+        Item(name, weight, grade, rules.get(name.lower()))
+        for name, weight, grade in zip(names, weights, grades)
+    ]
 
 
 class GradeProblem(Exception):
@@ -304,10 +370,17 @@ def show_number(number):
     """Show a Fraction exactly, the way a person would write it: 20, 27.5, 20.123456.
 
     Not float(...): that cuts to 6 digits, so 20.123456 would be saved as 20.1235.
-    Numbers come from decimals typed by the user, so they always end.
+    Numbers typed by the user always end. Points worked out with a dropped grade (R19)
+    may not (35/3 = 11.666...), so those are shown with 2 decimals, .5 going up (11.67).
     """
     if number.denominator == 1:
         return str(number.numerator)
+    rest = number.denominator
+    for factor in (2, 5):  # a fraction ends in decimals only if 2 and 5 divide its denominator
+        while rest % factor == 0:
+            rest //= factor
+    if rest != 1:
+        return show_number(Fraction(math.floor(number * 100 + Fraction(1, 2)), 100))
     return str(Decimal(number.numerator) / Decimal(number.denominator))
 
 
@@ -357,18 +430,60 @@ def letter_for(rounded):
     raise ValueError(f"{rounded}% is below 0")
 
 
-def current_grade(items):
-    """The grade from the items that count so far, or None if no grades are out yet.
+def _is_out(item):
+    """True if the item counts so far: weight above 0 and a grade (not N/A).
 
-    An item counts if its weight is above 0 and its grade is not N/A.
     The weight > 0 check is only a safety net: parse_class already makes a weight-0
     item's grade 0 or N/A, so it would add 0 out of 0 anyway.
     """
-    counted = [item for item in items if item.weight > 0 and item.grade is not None]
-    out_of = sum((item.weight for item in counted), Fraction(0))
+    return item.weight > 0 and item.grade is not None
+
+
+def dropped(items):
+    """Positions of the parts not counted because their category drops its lowest grade
+    or keeps only its highest (R19, spec.md section 17).
+
+    Only parts that are out can be dropped, and only when at least 2 are out. Lowest and
+    highest are by the part's own %; on a tie, min and max pick the first part.
+    """
+    found = set()
+    for group in categories(items):
+        rule = items[group[0]].rule
+        out = [position for position in group if _is_out(items[position])]
+        if rule is None or len(out) < 2:
+            continue
+
+        def percent(position):
+            return items[position].grade / items[position].weight
+
+        if rule == DROP_LOWEST:
+            found.add(min(out, key=percent))
+        else:
+            highest = max(out, key=percent)
+            found.update(position for position in out if position != highest)
+    return found
+
+
+def current_grade(items):
+    """The grade from the items that count so far, or None if no grades are out yet.
+
+    An item counts if it is out (_is_out). A category that drops a grade (R19) keeps its
+    weight so far: the parts out count as the kept parts' %, so with 8, 4 and 9 out of 10
+    and 4 dropped, it is 17 out of 20 = 85% of 30 = 25.5 out of 30.
+    """
+    left_out = dropped(items)
+    earned = out_of = Fraction(0)
+    for group in categories(items):
+        out = [items[position] for position in group if _is_out(items[position])]
+        if not out:
+            continue
+        kept = [items[p] for p in group if _is_out(items[p]) and p not in left_out]
+        weight = sum((item.weight for item in out), Fraction(0))
+        kept_weight = sum((item.weight for item in kept), Fraction(0))
+        earned += sum((item.grade for item in kept), Fraction(0)) * weight / kept_weight
+        out_of += weight
     if out_of == 0:
         return None
-    earned = sum((item.grade for item in counted), Fraction(0))
     percent = earned / out_of * 100
     rounded = round_percent(percent)
     letter, gpa = letter_for(rounded)
@@ -470,34 +585,34 @@ class Needed:
 
 
 def needed_for(items, goal):
-    """Work out the same % needed on every N/A item to reach the goal.
+    """Work out the same % needed on every N/A item to reach the goal (spec.md section 4).
 
-    The weights add up to 100, so the final grade out of 100 is
-    points earned + needed % x (weight of the N/A items).
-    Because of rounding, a final of goal - 0.5 is already enough.
+    The weights add up to 100, so the final grade is the points earned once every N/A
+    item has a grade. Because of rounding, a final of goal - 0.5 is already enough.
+    Which part is dropped (R19) depends on the grades the N/A items get, so instead of a
+    formula, each whole % from 0 to 100 is tried and the first that reaches the goal is
+    the one needed. Without drops this is the formula's answer rounded up.
     """
-    remaining = [item for item in items if item.weight > 0 and item.grade is None]
+    remaining = [p for p, item in enumerate(items) if item.weight > 0 and item.grade is None]
     # "homework 1.1" for a part of a split category (R17), else just the name.
-    names = [
-        label for item, label in zip(items, labels(items))
-        if item.weight > 0 and item.grade is None
-    ]
+    names = [labels(items)[position] for position in remaining]
     if not remaining:
         return Needed("done", names, final=current_grade(items))
 
-    earned = sum(
-        (item.grade for item in items if item.weight > 0 and item.grade is not None),
-        Fraction(0),
-    )
-    weight_left = sum((item.weight for item in remaining), Fraction(0))
-    exact = (goal.lowest - Fraction(1, 2) - earned) / weight_left * 100
+    def final_points(percent):
+        """The points out of 100 if every N/A item gets this %."""
+        filled = list(items)
+        for position in remaining:
+            filled[position] = replace(items[position], grade=items[position].weight * percent / 100)
+        return current_grade(filled).earned
 
-    if exact <= 0:
+    enough = goal.lowest - Fraction(1, 2)
+    if final_points(0) >= enough:
         return Needed("already", names)
-    percent = math.ceil(exact)  # round UP, so following it really reaches the goal
-    if percent > 100:
-        return Needed("unreachable", names, best_rounded=round_percent(earned + weight_left))
-    return Needed("need", names, percent=percent)
+    for percent in range(1, 101):
+        if final_points(percent) >= enough:
+            return Needed("need", names, percent=percent)
+    return Needed("unreachable", names, best_rounded=round_percent(final_points(100)))
 
 
 def _join_names(names):
