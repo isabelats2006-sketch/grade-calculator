@@ -18,6 +18,12 @@ A command-line app for my CSC 299 final project. Read `problem.md` (what it must
 - **Show me every commit message before committing**, and wait for my OK. The assignment
   says I must read assistant-written messages before they are committed.
 - **Push at least once on every day of work.**
+- **Requirement IDs never change meaning.** A changed requirement keeps its number; a removed
+  one stays in problem.md, marked removed; new ones get the next number, never a reused one.
+- **Every round gets at least one decision record** in `docs/decisions/`, as a Y-statement,
+  for a decision that had real alternatives. Files are numbered 0001, 0002, ... in order.
+- **When breaking code on purpose to check a test fails**, check that the break really
+  happened (that the file changed), then restore it and check that it matches the original.
 - **Never in the repo:** `.jsonl` transcripts, `.venv`, `node_modules`, API keys or
   passwords, `saved_classes/` (real grades), or any personal info. The repo is public.
 - **README.md** always says what the program does, the command to run it, and the command
@@ -42,3 +48,6 @@ python -m pytest                   # run the tests
   correctly (with floats, 115 came out as 114.99999999999999).
 - Rounding: nearest whole %, .5 goes up (Python's `round()` rounds .5 to even, so don't
   use it).
+- For multi-line Python edit scripts, write the script to a file in the scratchpad and run
+  it. Inline `python - <<'EOF'` in the Bash tool once failed to parse, and once turned `\n`
+  inside a test string into real line breaks.
