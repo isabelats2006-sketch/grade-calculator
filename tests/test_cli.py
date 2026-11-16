@@ -253,7 +253,7 @@ def test_parse_grade_rejects_what_the_file_rejects(typed, weight, message):
 RENAME = 'New name for "CSC 299" (press Enter to keep it): '
 DELETE = (
     'Are you sure you want to delete "CSC 299"? It will be lost. '
-    "Type its name to delete it, or press Enter to keep it: "
+    "Type Yes to delete it or No to keep it: "
 )
 OTHER_CLASS = "hw / midterm / final / attendance\n30 30 30 10\n30 30 30 10\n"
 
@@ -318,11 +318,12 @@ def test_renaming_from_the_saved_class_list(saved):
 
 # --- Deleting a class (spec.md sections 10 and 11) ---
 
+@pytest.mark.parametrize("typed", ["Yes", "yes", "YES", " yEs "])
 # Checks R12.
-def test_deleting_asks_first_and_typing_the_name_deletes(saved):
+def test_deleting_asks_first_and_yes_deletes(saved, typed):
     save_class(saved, "CSC 299", parse_class(SPEC_EXAMPLE))
     save_class(saved, "MATH 101", parse_class(OTHER_CLASS))
-    _, printed, questions = run([], ["d", "1", " CSC 299 ", "q"], saved)
+    _, printed, questions = run([], ["d", "1", typed, "q"], saved)
     assert DELETE in questions
     assert 'Deleted "CSC 299".' in printed
     assert printed.count("Your saved classes:") == 2
@@ -330,9 +331,9 @@ def test_deleting_asks_first_and_typing_the_name_deletes(saved):
     assert list_classes(saved) == ["MATH 101"]
 
 
-@pytest.mark.parametrize("typed", ["", "y", "yes", "csc 299", "CSC 29"])
+@pytest.mark.parametrize("typed", ["No", "no", "NO", " nO "])
 # Checks R12.
-def test_anything_but_the_exact_name_keeps_the_class(saved, typed):
+def test_no_keeps_the_class(saved, typed):
     save_class(saved, "CSC 299", parse_class(SPEC_EXAMPLE))
     _, printed, questions = run([], ["d", "1", typed, "q"], saved)
     assert DELETE in questions
@@ -341,10 +342,30 @@ def test_anything_but_the_exact_name_keeps_the_class(saved, typed):
     assert load_class(saved, "CSC 299") == parse_class(SPEC_EXAMPLE)
 
 
+# Checks R7, R12.
+def test_anything_but_yes_or_no_asks_again(saved):
+    save_class(saved, "CSC 299", parse_class(SPEC_EXAMPLE))
+    answers = ["d", "1", "", "y", "n", "CSC 299", "yess", "yes"]
+    _, printed, questions = run([], answers + ["q"], saved)
+    assert questions.count(DELETE) == 6
+    assert printed.count("Please type Yes or No.") == 5
+    assert 'Deleted "CSC 299".' in printed
+    assert list_classes(saved) == []
+
+
+# Checks R7, R12.
+def test_q_at_the_delete_question_quits_and_keeps_the_class(saved):
+    save_class(saved, "CSC 299", parse_class(SPEC_EXAMPLE))
+    _, printed, questions = run([], ["d", "1", "q"], saved)
+    assert questions[-1] == DELETE
+    assert printed.endswith("Bye!")
+    assert load_class(saved, "CSC 299") == parse_class(SPEC_EXAMPLE)
+
+
 # Checks R12.
 def test_deleting_the_open_class_goes_back_to_the_list(class_file, saved):
     save_class(saved, "MATH 101", parse_class(OTHER_CLASS))
-    answers = ["CSC 299", "B", "4", "CSC 299", "1", "A", "5"]
+    answers = ["CSC 299", "B", "4", "yes", "1", "A", "5"]
     _, printed, questions = run([str(class_file)], answers, saved)
     assert DELETE in questions
     assert 'Deleted "CSC 299".' in printed
@@ -355,7 +376,7 @@ def test_deleting_the_open_class_goes_back_to_the_list(class_file, saved):
 
 # Checks R12.
 def test_deleting_the_last_class_says_none_are_left_and_ends(class_file, saved):
-    code, printed, _ = run([str(class_file)], ["CSC 299", "B", "4", "CSC 299"], saved)
+    code, printed, _ = run([str(class_file)], ["CSC 299", "B", "4", "Yes"], saved)
     assert code == 0
     assert 'Deleted "CSC 299".' in printed
     assert "You have no saved classes yet. Start with a class file, for example:" in printed
@@ -365,7 +386,7 @@ def test_deleting_the_last_class_says_none_are_left_and_ends(class_file, saved):
 
 # Checks R12.
 def test_keeping_the_open_class_returns_to_the_menu(class_file, saved):
-    _, printed, _ = run([str(class_file)], ["CSC 299", "B", "4", "n", "5"], saved)
+    _, printed, _ = run([str(class_file)], ["CSC 299", "B", "4", "No", "5"], saved)
     assert 'Kept "CSC 299".' in printed
     assert printed.count("You need at least 92% on final and project to get a B.") == 2
     assert list_classes(saved) == ["CSC 299"]

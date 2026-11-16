@@ -260,13 +260,17 @@ def ask_rename(name, ask, say, folder):
 
 
 def ask_delete(name, ask, say, folder):
-    """Ask first; delete only if the class's name is typed exactly. True if it was deleted."""
-    typed = _ask(
-        ask,
+    """Ask first until Yes or No is typed; delete only on Yes. True if it was deleted."""
+    question = (
         f'Are you sure you want to delete "{name}"? It will be lost. '
-        "Type its name to delete it, or press Enter to keep it: ",
+        "Type Yes to delete it or No to keep it: "
     )
-    if typed.strip() != name:
+    while True:
+        typed = _ask(ask, question).strip().lower()
+        if typed in ("yes", "no"):
+            break
+        say("Please type Yes or No.")
+    if typed == "no":
         say(f'Kept "{name}".')
         return False
     try:
