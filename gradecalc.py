@@ -16,7 +16,7 @@ from grades import (
     categories, current_grade, dropped,
     MAX_PARTS, SplitProblem, describe_needed, is_split, item_percent, labels, needed_for, numbers,
     parse_class, parse_goal, parse_grade, parse_part_weight, show_number, split_category,
-    splittable,
+    splittable, with_rule,
 )
 from storage import (
     NameProblem, aligned_row, check_name, class_to_text, delete_class, find_class, list_classes, load_class,
@@ -290,7 +290,8 @@ RULE_TEXT = {DROP_LOWEST: "drops its lowest grade", KEEP_HIGHEST: "keeps only it
 
 MENU = [
     "", "1) Change a grade", "2) Change the goal", "3) Rename this class", "4) Delete this class",
-    "5) What if (try grades without saving)", "6) Split a category", "7) Quit",
+    "5) What if (try grades without saving)", "6) Split a category",
+    "7) Drop the lowest or keep the highest grade", "8) Quit",
 ]
 
 
@@ -302,7 +303,7 @@ def run_menu(items, name, goal, ask, say, folder):
     while True:
         for line in screen(items, name, goal) + MENU:
             say(line)
-        choice = _ask(ask, "Choose 1 to 7: ").strip()
+        choice = _ask(ask, "Choose 1 to 8: ").strip()
         if choice == "1":
             items = change_a_grade(items, ask, say)
             save_class(folder, name, items)
@@ -324,9 +325,15 @@ def run_menu(items, name, goal, ask, say, folder):
                 save_class(folder, name, items)
                 say("Saved.")
         elif choice == "7":
+            counted = ask_rule(items, ask, say)
+            if counted is not None:
+                items = counted
+                save_class(folder, name, items)
+                say("Saved.")
+        elif choice == "8":
             raise Quit
         else:
-            say("Please type 1, 2, 3, 4, 5, 6 or 7.")
+            say("Please type 1, 2, 3, 4, 5, 6, 7 or 8.")
         say("")
 
 
@@ -441,6 +448,42 @@ def ask_split(items, ask, say):
             except GradeProblem as problem:
                 say(str(problem))
     return split_category(items, group, parts)
+
+
+# --- Dropping the lowest grade or keeping the highest (spec.md section 17, R19) ---
+
+# How each choice is named in the category list and after it is made ("homework now ...").
+RULE_CHOICE = {
+    None: "counts all parts", DROP_LOWEST: "drops the lowest grade",
+    KEEP_HIGHEST: "keeps only the highest grade",
+}
+RULE_MENU = [
+    "1) Count all parts (the standard)", "2) Drop the lowest grade", "3) Keep only the highest grade",
+]
+
+
+def ask_rule(items, ask, say):
+    """Ask which split category and how it counts its parts. Returns the new items, or
+    None if no category is split (nothing can be dropped).
+    """
+    choices = [
+        (number, group) for number, group in enumerate(categories(items), start=1)
+        if len(group) > 1
+    ]
+    if not choices:
+        say("No category is split into parts yet, so no grade can be dropped. "
+            "Split one first (option 6).")
+        return None
+    say("Which category? (only a split category can drop a grade)")
+    for choice, (number, group) in enumerate(choices, start=1):
+        first = items[group[0]]
+        say(f"  {choice}) {first.name} ({number}), {len(group)} parts, {RULE_CHOICE[first.rule]}")
+    _, group = choices[_ask_number(ask, say, len(choices), "Which one? (number): ") - 1]
+    for line in RULE_MENU:
+        say(line)
+    rule = (None, DROP_LOWEST, KEEP_HIGHEST)[_ask_number(ask, say, 3, "Choose 1, 2 or 3: ") - 1]
+    say(f"{items[group[0]].name} now {RULE_CHOICE[rule]}.")
+    return with_rule(items, group, rule)
 
 
 def _ask_part_weight(ask, say, question):

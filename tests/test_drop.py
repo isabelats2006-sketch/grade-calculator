@@ -291,3 +291,91 @@ def test_the_gpa_across_classes_counts_the_drop(tmp_path):
         "  CSC 299: B+ (3.3), 89%",
         "  MATH 101: C+ (2.3), 78%",
     ]
+
+
+# --- Menu option 7: Drop the lowest or keep the highest grade ---
+
+@pytest.fixture
+def opened(tmp_path):
+    """A class file to open: the R19 example without a choice, plus a split project."""
+    path = tmp_path / "csc299.txt"
+    path.write_text(
+        "homework / homework / homework / midterm / final / attendance / project / project\n"
+        "10 10 10 30 30 0 5 5\n"
+        "8 4 9 N/A N/A N/A 5 2\n"
+        "project: keep highest\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+# Checks R19.
+def test_the_menu_option_lists_the_split_categories_and_how_they_count(opened, tmp_path):
+    _, printed, questions = run([str(opened)], ["CSC 299", "B", "7", "q"], tmp_path / "saved")
+    assert (
+        "Which category? (only a split category can drop a grade)\n"
+        "  1) homework (1), 3 parts, counts all parts\n"
+        "  2) project (5), 2 parts, keeps only the highest grade"
+    ) in printed
+    assert questions[-1] == "Which one? (number): "
+
+
+# Checks R19, R10.
+@pytest.mark.parametrize("choice, rule, said", [
+    ("2", DROP_LOWEST, "homework now drops the lowest grade."),
+    ("3", KEEP_HIGHEST, "homework now keeps only the highest grade."),
+    ("1", None, "homework now counts all parts."),
+])
+def test_choosing_how_a_category_counts_is_saved(opened, tmp_path, choice, rule, said):
+    saved = tmp_path / "saved"
+    _, printed, _ = run([str(opened)], ["CSC 299", "B", "7", "1", choice, "q"], saved)
+    assert (
+        "1) Count all parts (the standard)\n2) Drop the lowest grade\n"
+        f"3) Keep only the highest grade\n{said}\nSaved."
+    ) in printed
+    items = load_class(saved, "CSC 299")
+    assert [item.rule for item in items] == [rule] * 3 + [None] * 3 + [KEEP_HIGHEST] * 2
+
+
+# Checks R19, R16.
+def test_the_screen_is_shown_again_with_the_part_dropped(opened, tmp_path):
+    _, printed, _ = run([str(opened)], ["CSC 299", "B", "7", "1", "2", "q"], tmp_path / "saved")
+    after = printed.split("Saved.")[1]
+    assert "homework 1.1:   4 out of 10    = 40%   (dropped)" in after
+    assert "homework drops its lowest grade." in after
+
+
+# Checks R19.
+def test_counting_all_parts_again_removes_the_line_from_the_file(opened, tmp_path):
+    saved = tmp_path / "saved"
+    run([str(opened)], ["CSC 299", "B", "7", "2", "1", "q"], saved)
+    assert "project:" not in (saved / "CSC 299.txt").read_text(encoding="utf-8")
+
+
+# Checks R19, R8.
+def test_wrong_answers_are_asked_again(opened, tmp_path):
+    answers = ["CSC 299", "B", "7", "x", "3", "1", "4", "two", "2", "q"]
+    _, printed, _ = run([str(opened)], answers, tmp_path / "saved")
+    assert printed.count("Please type a number from 1 to 2.") == 2
+    assert printed.count("Please type a number from 1 to 3.") == 2
+    assert "homework now drops the lowest grade." in printed
+
+
+# Checks R19.
+def test_with_no_split_category_nothing_can_be_dropped(tmp_path):
+    path = tmp_path / "csc299.txt"
+    path.write_text("hw / midterm / final / attendance\n30 30 30 10\n20 N/A N/A 10\n", encoding="utf-8")
+    saved = tmp_path / "saved"
+    _, printed, questions = run([str(path)], ["CSC 299", "B", "7", "q"], saved)
+    assert ("No category is split into parts yet, so no grade can be dropped. "
+            "Split one first (option 6).") in printed
+    assert "Which category?" not in printed
+    assert questions[-1].startswith("Choose 1 to")  # back to the menu
+
+
+# Checks R19.
+def test_q_at_the_question_quits_and_nothing_is_changed(opened, tmp_path):
+    saved = tmp_path / "saved"
+    _, printed, _ = run([str(opened)], ["CSC 299", "B", "7", "1", "q"], saved)
+    assert "now" not in printed.split("Which category?")[1]
+    assert [item.rule for item in load_class(saved, "CSC 299")][:3] == [None] * 3
