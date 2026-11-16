@@ -1,4 +1,4 @@
-"""Grade calculator: the program you run (spec.md sections 2, 5, 6, 7, 9, 10 and 11).
+"""Grade calculator: the program you run (spec.md sections 2, 5, 6, 7 and 9 to 12).
 
     python gradecalc.py csc299.txt     open a class file (first time)
     python gradecalc.py                pick one of your saved classes
@@ -206,7 +206,7 @@ def screen(items, name, goal):
 
 MENU = [
     "", "1) Change a grade", "2) Change the goal", "3) Rename this class", "4) Delete this class",
-    "5) Quit",
+    "5) What if (try grades without saving)", "6) Quit",
 ]
 
 
@@ -218,7 +218,7 @@ def run_menu(items, name, goal, ask, say, folder):
     while True:
         for line in screen(items, name, goal) + MENU:
             say(line)
-        choice = _ask(ask, "Choose 1 to 5: ").strip()
+        choice = _ask(ask, "Choose 1 to 6: ").strip()
         if choice == "1":
             items = change_a_grade(items, ask, say)
             save_class(folder, name, items)
@@ -232,9 +232,36 @@ def run_menu(items, name, goal, ask, say, folder):
                 say("")
                 return
         elif choice == "5":
+            what_if(items, name, goal, ask, say)
+        elif choice == "6":
             raise Quit
         else:
-            say("Please type 1, 2, 3, 4 or 5.")
+            say("Please type 1, 2, 3, 4, 5 or 6.")
+        say("")
+
+
+# --- What if (spec.md section 12) ---
+
+WHAT_IF_MENU = ["", "1) Try a grade", "2) Leave what-if mode"]
+
+
+def what_if(items, name, goal, ask, say):
+    """Try grades on a copy of the items until the user leaves. Nothing is ever saved.
+
+    change_a_grade returns a new list, so the caller's items stay the real grades.
+    """
+    tried = list(items)
+    while True:
+        for line in ["WHAT IF: nothing here is saved"] + screen(tried, name, goal) + WHAT_IF_MENU:
+            say(line)
+        choice = _ask(ask, "Choose 1 or 2: ").strip()
+        if choice == "1":
+            tried = change_a_grade(tried, ask, say)
+        elif choice == "2":
+            say("Left what-if mode. Your real grades are back.")
+            return
+        else:
+            say("Please type 1 or 2.")
         say("")
 
 
