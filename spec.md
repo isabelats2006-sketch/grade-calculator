@@ -274,8 +274,8 @@ then a TOTAL line. With the R16 example's grades:
 
 ```
 homework / midterm / final / attendance
-20         30        40      10           = total weight
-15         20        N/A     10           = 45 out of 60 = 75% = C (2.0)
+20         30        40      10          = total weight
+15         20        N/A     10          = 45 out of 60 = 75% = C (2.0)
 -------------------- === --------------------
 homework:       15 out of 20 = 75%
 midterm:        20 out of 30 = 67%
@@ -336,8 +336,8 @@ row and the screen is as in section 5.
 ```
 1.0        1.1        2.0       3.0     4.0
 homework / homework / midterm / final / attendance
-10         10         30        40      10           = total weight
-8          N/A        20        N/A     10           = 38 out of 50 = 76% = C (2.0)
+10         10         30        40      10          = total weight
+8          N/A        20        N/A     10          = 38 out of 50 = 76% = C (2.0)
 -------------------- === --------------------
 homework 1.0:   8 out of 10  = 80%
 homework 1.1:   N/A
