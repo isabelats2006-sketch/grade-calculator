@@ -461,3 +461,76 @@ def test_a_wrong_choice_or_bad_grade_in_what_if_is_explained(class_file, saved):
     assert "The grade can't be more than its weight (20)." in printed
     assert "Left what-if mode. Your real grades are back." in printed
     assert load_class(saved, "CSC 299") == parse_class(SPEC_EXAMPLE)
+
+
+# --- GPA across all classes (spec.md section 13) ---
+
+NO_GRADES_YET = "hw / midterm / final / attendance\n30 30 30 10\nN/A N/A N/A N/A\n"
+
+
+# Checks R14.
+def test_two_classes_show_their_gpas_and_the_average_above_the_list(saved):
+    save_class(saved, "CSC 299", parse_class(SPEC_EXAMPLE))  # C+ (2.3)
+    save_class(saved, "MATH 101", parse_class(OTHER_CLASS))  # A (4.0)
+    _, printed, _ = run([], ["q"], saved)
+    assert printed.startswith(
+        "GPA across all your classes: 3.15 (average of 2 classes)\n"
+        "  CSC 299: C+ (2.3), 79%\n"
+        "  MATH 101: A (4.0), 100%\n"
+        "\n"
+        "Your saved classes:\n  1) CSC 299\n  2) MATH 101"
+    )
+
+
+# Checks R14.
+def test_one_class_shows_no_gpa_across_classes(saved):
+    save_class(saved, "CSC 299", parse_class(SPEC_EXAMPLE))
+    _, printed, _ = run([], ["q"], saved)
+    assert "GPA across" not in printed
+    assert printed.startswith("Your saved classes:\n  1) CSC 299")
+
+
+# Checks R5, R14.
+def test_a_class_with_no_grades_yet_is_listed_but_not_counted(saved):
+    save_class(saved, "CSC 299", parse_class(SPEC_EXAMPLE))
+    save_class(saved, "WRD 101", parse_class(NO_GRADES_YET))
+    _, printed, _ = run([], ["q"], saved)
+    assert printed.startswith(
+        "GPA across all your classes: 2.30 (average of 1 class)\n"
+        "  CSC 299: C+ (2.3), 79%\n"
+        "  WRD 101: no grades out yet, not counted\n"
+    )
+
+
+# Checks R5, R14.
+def test_no_grades_out_in_any_class(saved):
+    save_class(saved, "ART 100", parse_class(NO_GRADES_YET))
+    save_class(saved, "WRD 101", parse_class(NO_GRADES_YET))
+    _, printed, _ = run([], ["q"], saved)
+    assert printed.startswith("GPA across all your classes: no grades out yet\n")
+
+
+# Checks R8, R14.
+def test_a_class_that_cant_be_read_is_listed_but_not_counted(saved):
+    save_class(saved, "CSC 299", parse_class(SPEC_EXAMPLE))
+    save_class(saved, "MATH 101", parse_class(OTHER_CLASS))
+    (saved / "MATH 101.txt").write_text("hw / midterm\n50 50\n1 2\n", encoding="utf-8")
+    code, printed, _ = run([], ["q"], saved)
+    assert code == 0
+    assert printed.startswith(
+        "GPA across all your classes: 2.30 (average of 1 class)\n"
+        "  CSC 299: C+ (2.3), 79%\n"
+        "  MATH 101: can't be read, not counted\n"
+    )
+
+
+# Checks R12, R14.
+def test_the_gpa_across_classes_is_updated_after_a_delete(saved):
+    save_class(saved, "CSC 299", parse_class(SPEC_EXAMPLE))  # C+ (2.3)
+    save_class(saved, "MATH 101", parse_class(OTHER_CLASS))  # A (4.0)
+    save_class(saved, "STAT 200", parse_class(OTHER_CLASS))  # A (4.0)
+    _, printed, _ = run([], ["d", "1", "yes", "d", "1", "yes", "q"], saved)
+    assert "GPA across all your classes: 3.43 (average of 3 classes)" in printed  # 3.4333...
+    assert "GPA across all your classes: 4.00 (average of 2 classes)" in printed
+    assert printed.count("GPA across") == 2  # not shown once only STAT 200 is left
+    assert printed.endswith("Your saved classes:\n  1) STAT 200\n\nBye!")

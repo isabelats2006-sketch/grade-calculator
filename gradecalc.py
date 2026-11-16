@@ -1,4 +1,4 @@
-"""Grade calculator: the program you run (spec.md sections 2, 5, 6, 7 and 9 to 12).
+"""Grade calculator: the program you run (spec.md sections 2, 5, 6, 7 and 9 to 13).
 
     python gradecalc.py csc299.txt     open a class file (first time)
     python gradecalc.py                pick one of your saved classes
@@ -11,8 +11,8 @@ import sys
 from pathlib import Path
 
 from grades import (
-    FileProblems, GoalProblem, GradeProblem, Item, current_grade, describe_needed,
-    needed_for, parse_class, parse_goal, parse_grade, show_number,
+    FileProblems, GoalProblem, GradeProblem, Item, average_gpa, current_grade,
+    describe_needed, needed_for, parse_class, parse_goal, parse_grade, show_number,
 )
 from storage import (
     NameProblem, check_name, class_to_text, delete_class, find_class, list_classes, load_class,
@@ -128,6 +128,31 @@ def ask_class_name(suggestion, ask, say, folder):
         say("OK, pick another name.")
 
 
+def gpa_across_classes(folder, names):
+    """The lines shown above the saved-class list: each class's GPA and their average
+    (spec.md section 13). Classes with no grades yet, or that can't be read, are not counted.
+    """
+    gpas, lines = [], []
+    for name in names:
+        try:
+            grade = current_grade(load_class(folder, name))
+        except (FileProblems, OSError, UnicodeDecodeError):
+            lines.append(f"  {name}: can't be read, not counted")
+            continue
+        if grade is None:
+            lines.append(f"  {name}: no grades out yet, not counted")
+        else:
+            gpas.append(grade.gpa)
+            lines.append(f"  {name}: {grade.letter} ({grade.gpa}), {grade.rounded}%")
+    average = average_gpa(gpas)
+    if average is None:
+        first = "GPA across all your classes: no grades out yet"
+    else:
+        classes = "class" if len(gpas) == 1 else "classes"
+        first = f"GPA across all your classes: {average} (average of {len(gpas)} {classes})"
+    return [first] + lines
+
+
 def pick_saved_class(ask, say, folder):
     """List the saved classes and let the user pick one, rename one or delete one.
 
@@ -139,6 +164,10 @@ def pick_saved_class(ask, say, folder):
             say("You have no saved classes yet. Start with a class file, for example:")
             say("  python gradecalc.py csc299.txt")
             return None
+        if len(names) >= 2:
+            for line in gpa_across_classes(folder, names):
+                say(line)
+            say("")
         say("Your saved classes:")
         for number, name in enumerate(names, start=1):
             say(f"  {number}) {name}")

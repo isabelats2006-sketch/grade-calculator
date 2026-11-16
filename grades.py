@@ -252,6 +252,19 @@ def current_grade(items):
     return Grade(earned, out_of, percent, rounded, letter, gpa)
 
 
+def average_gpa(gpas):
+    """The plain average of these GPAs ("4.0", "3.7", ...) as text with 2 decimals, or None.
+
+    Used for the GPA across all classes (spec.md section 13). Each class counts the same.
+    Exact Fractions and .5 going up, as for the % (3.925 -> 3.93, where round() gives 3.92).
+    """
+    if not gpas:
+        return None
+    average = sum((Fraction(gpa) for gpa in gpas), Fraction(0)) / len(gpas)
+    hundredths = math.floor(average * 100 + Fraction(1, 2))
+    return f"{hundredths // 100}.{hundredths % 100:02d}"
+
+
 # --- The goal and what is needed to reach it (spec.md section 4) ---
 
 class GoalProblem(Exception):

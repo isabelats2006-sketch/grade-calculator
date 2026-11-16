@@ -4,7 +4,7 @@ from fractions import Fraction
 
 import pytest
 
-from grades import Item, current_grade, letter_for, parse_class, round_percent
+from grades import Item, average_gpa, current_grade, letter_for, parse_class, round_percent
 
 
 # --- Rounding: nearest whole %, .5 goes up ---
@@ -91,3 +91,31 @@ def test_all_zero_scores_is_an_f_not_none():
     items = parse_class("hw / midterm / final / attendance\n30 30 30 10\n0 N/A N/A N/A\n")
     grade = current_grade(items)
     assert (grade.rounded, grade.letter, grade.gpa) == (0, "F", "0.0")
+
+
+# --- The GPA across classes (spec.md section 13) ---
+
+@pytest.mark.parametrize(
+    "gpas, expected",
+    [
+        (["4.0", "3.0"], "3.50"),
+        (["4.0", "3.7", "3.0"], "3.57"),  # 3.5666...
+        (["3.7", "3.0", "3.0"], "3.23"),  # 3.2333...
+        (["1.0"], "1.00"),
+        (["0.0", "0.0"], "0.00"),
+    ],
+)
+# Checks R14.
+def test_average_gpa_is_the_plain_average_with_2_decimals(gpas, expected):
+    assert average_gpa(gpas) == expected
+
+
+# Checks R14.
+def test_average_gpa_rounds_half_up_not_to_even():
+    # 4.0 + 4.0 + 4.0 + 3.7 = 15.7, / 4 = 3.925 exactly; round() would give 3.92.
+    assert average_gpa(["4.0", "4.0", "4.0", "3.7"]) == "3.93"
+
+
+# Checks R14.
+def test_average_gpa_of_no_classes_is_none():
+    assert average_gpa([]) is None
