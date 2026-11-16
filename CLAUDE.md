@@ -60,6 +60,18 @@ python -m pytest                   # run the tests
 - `sed -i` in Git Bash rewrites the whole file's line endings, so `git diff` then shows
   every line as changed. When breaking code on purpose, copy the file to the scratchpad
   first, restore from that copy, and check it with `cmp` or `sha256sum`, not `git diff`.
+- **Some files are CRLF, some LF** (check with `file *.py tests/*.py`). A search pattern
+  with `\n` in it doesn't match a CRLF file. When breaking code on purpose, replace a
+  single line, using a script that stops if the text isn't found exactly once, so a break
+  that didn't happen is never mistaken for a test that passed.
+- **Before writing a test that compares screen text, print the real output** and copy
+  from it; don't count spaces by hand. To import from both the project and `tests/` in a
+  one-off command: `PYTHONPATH=".;tests" python -c "..."` (Windows uses `;`, not `:`).
+  Check every example of program output in `spec.md` the same way before committing it.
+- **Test counts in commit messages come from pytest's totals** (after minus before), not
+  from counting functions: parametrized tests count once per input.
+- In a piped real run, the questions have no line break after them, so the answer and the
+  next line run together; use `tail` to read the output, not `grep`/`sed` on a line.
 - **When two changes end up in the same files** (and `git add -p` can't be used, since it
   is interactive), save a snapshot of each step's files in the scratchpad, then commit them
   one at a time, running the tests at each step.
