@@ -15,8 +15,12 @@ A command-line app for my CSC 299 final project. Read `problem.md` (what it must
   each test names the ID(s) it checks in a comment right above it: `# Checks R3, R8.`
 - **Commits:** one change per commit. The message says what changed and why. Never
   "update", "fix", "wip" or similar. Never undo or amend a commit.
+- **Every commit message has a body that says why**, not just a title, decision-record
+  commits included (for example: "Round 5 needs a decision record, and this choice had
+  real alternatives: ...").
 - **Show me every commit message before committing**, and wait for my OK. The assignment
-  says I must read assistant-written messages before they are committed.
+  says I must read assistant-written messages before they are committed. When showing
+  several at once, show each one in full in its own block.
 - **Push at least once on every day of work.**
 - **Requirement IDs never change meaning.** A changed requirement keeps its number; a removed
   one stays in problem.md, marked removed; new ones get the next number, never a reused one.
@@ -68,6 +72,12 @@ python -m pytest                   # run the tests
   from it; don't count spaces by hand. To import from both the project and `tests/` in a
   one-off command: `PYTHONPATH=".;tests" python -c "..."` (Windows uses `;`, not `:`).
   Check every example of program output in `spec.md` the same way before committing it.
+- **New tests that run the program end their answers with `q`**, not the menu's Quit
+  number, so adding a menu option doesn't break them. (Old tests in `tests/test_cli.py`
+  still quit with the number; each time the menu grows, they all change, and the commit
+  message says so.)
+- **The Edit tool keeps a CRLF file CRLF.** After editing, check it anyway by counting
+  `\r\n` against `\n` in the file (they should be equal for a CRLF file).
 - **Test counts in commit messages come from pytest's totals** (after minus before), not
   from counting functions: parametrized tests count once per input.
 - In a piped real run, the questions have no line break after them, so the answer and the
