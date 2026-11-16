@@ -28,7 +28,9 @@ You need at least 92% on final and project to get a B.
 ```
 
 From the menu you can change a grade (it is saved), change the goal, rename the class,
-delete it, or quit.
+delete it, try grades in what-if mode, or quit. In what-if mode you can try any grade
+("what if I get 18 on the final?") and see your grade and what you still need. Nothing
+there is saved, and when you leave the mode your real grades are back.
 
 After that, run it with no file to pick one of your saved classes:
 
@@ -38,7 +40,10 @@ python gradecalc.py
 
 In that list you can also type `r` to rename a class or `d` to delete one. Names can use
 any character except `\ / : * ? " < > |` (Windows doesn't allow those in file names).
-Before deleting, it asks you to type the class's name, so nothing is deleted by accident.
+Before deleting, it asks you to type Yes or No, so nothing is deleted by accident.
+
+With 2 or more saved classes, the list starts with your GPA across all of them: each
+class's current GPA and their plain average. Classes with no grades out yet are not counted.
 
 ## Run the tests
 
