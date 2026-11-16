@@ -133,7 +133,8 @@ After the result, a menu:
 2) Change the goal
 3) Rename this class
 4) Delete this class
-5) Quit
+5) What if (try grades without saving)
+6) Quit
 ```
 
 - **Change a grade**: pick the item by number, then type the new grade (a number or
@@ -141,6 +142,8 @@ After the result, a menu:
   result is shown again.
 - **Change the goal**: asks the goal question again.
 - **Rename this class** and **Delete this class**: see sections 9 and 10.
+- **What if**: see section 12.
+- A wrong choice says `Please type 1, 2, 3, 4, 5 or 6.` and asks again.
 - Weights and names are changed by editing the saved file in `saved_classes/` by hand.
 - `q` at any question still quits.
 
@@ -166,10 +169,12 @@ the saved-class list (type `r`, then the class's number).
 A saved class can be deleted from two places: the menu of an open class (option 4), and
 the saved-class list (type `d`, then the class's number).
 
-- It always asks first:
-  `Are you sure you want to delete "CSC 299"? It will be lost. Type its name to delete it, or press Enter to keep it: `
-- Only typing the class's name exactly (spaces around it are ignored, capitals are not)
-  deletes it. Anything else keeps it and says `Kept "CSC 299".`
+- It always asks first (changed in round 3):
+  `Are you sure you want to delete "CSC 299"? It will be lost. Type Yes to delete it or No to keep it: `
+- `Yes` deletes it and `No` keeps it and says `Kept "CSC 299".` Capitals and spaces around
+  the answer don't matter (`yes`, `YES`, ` No ` all work).
+- Anything else, including just Enter, says `Please type Yes or No.` and asks again.
+  `q` still quits the program, and the class is kept.
 - When deleted, it says `Deleted "CSC 299".` and the file in `saved_classes/` is removed.
 - From the menu of an open class, the program then goes back to the saved-class list. If
   no classes are left, it says so (as in section 6) and ends.
@@ -188,11 +193,66 @@ Pick a class by number, r to rename, d to delete, or q to quit:
   and 10, then shows the list again.
 - Anything else says `Please type a number from 1 to 2.` (with `r`, `d` and `q` in the
   question) and asks again.
+- With 2 or more saved classes, the GPA across all of them is shown above this list
+  (section 13).
+
+## 12. What if (R15)
+
+Option 5 in the menu of an open class tries out grades without saving them.
+
+```
+WHAT IF: nothing here is saved
+CSC 299
+GOAL = B (3.0) // CURRENT GRADE = B (3.0), 85%
+...                                   (the same screen as section 5, with the tried grades)
+
+1) Try a grade
+2) Leave what-if mode
+Choose 1 or 2:
+```
+
+- It starts from the class's real grades. **Try a grade** works like *Change a grade*
+  (section 7): pick any item, N/A or already out, and type a grade, checked by the same
+  rules. The screen is shown again with the tried grade, the current grade and what is
+  still needed for the goal. Grades can be tried as many times as you like.
+- Nothing tried is ever saved: `saved_classes/` is not written while in this mode.
+- **Leave what-if mode** says `Left what-if mode. Your real grades are back.` and shows
+  the normal screen and menu with the real grades, as they were before.
+- A wrong choice says `Please type 1 or 2.` and asks again.
+- `q` quits the program from here too; nothing tried is saved.
+- The goal is the one set outside the mode.
+
+## 13. GPA across all classes (R14)
+
+When there are 2 or more saved classes, the saved-class list (section 11) starts with:
+
+```
+GPA across all your classes: 3.50 (average of 2 classes)
+  CSC 299: A (4.0), 95%
+  MATH 101: B (3.0), 85%
+  WRD 101: no grades out yet, not counted
+
+Your saved classes:
+  1) CSC 299
+  ...
+```
+
+- Each class's GPA is its current grade (section 3), from the grades out so far.
+- The GPA across classes is the plain average of those GPAs (each class counts the same,
+  since class files have no credits). It is shown with 2 decimals, .5 going up
+  (4.0, 3.7 and 3.0 average 3.5666... → 3.57).
+- A class with no grades out yet is listed but not counted. A saved class that breaks a
+  file rule (edited by hand) is listed as `can't be read, not counted`.
+- If no class has grades out yet, the first line is
+  `GPA across all your classes: no grades out yet`.
+- With 0 or 1 saved classes it is not shown.
+- It is shown every time the list is shown, so it is up to date after a rename or delete.
 
 ## 8. Tests
 
 `python -m pytest`. Tests cover the logic: reading and checking the file, the grade and
-rounding, the goal input, the "needed" math, and saving/loading, renaming and deleting. The screen layout is
+rounding, the goal input, the "needed" math, and saving/loading, renaming and deleting,
+the Yes/No delete question, what-if mode and the GPA across classes. The screen layout is
 not tested.
 
 ## Decisions I made that problem.md doesn't say (please check)
@@ -210,8 +270,24 @@ not tested.
 
 8. Rename and delete are in both the open-class menu and the saved-class list.
 9. "Special characters within reason" means every character Windows allows in a file name.
-10. Deleting needs the class's name typed exactly; anything else keeps it.
+10. Deleting needs the class's name typed exactly; anything else keeps it. (Replaced in
+    round 3 by decision 15, because R12 changed.)
 11. Renaming to a name another class already has is refused, never a replacement.
 12. Quit moves from 3 to 5 in the menu so it stays last; `q` still quits anywhere.
 13. Pressing Enter at the rename question keeps the old name.
 14. After deleting the open class, the program goes back to the saved-class list.
+
+### Round 3 (R12 changed, R14, R15)
+
+15. Deleting asks for `Yes` or `No` (capitals and outer spaces don't matter); anything else
+    asks again. (Your choice.)
+16. The GPA across classes is the plain average of each class's current GPA; classes with
+    no grades out yet are not counted. (Your choice.)
+17. It is shown automatically above the saved-class list when there are 2 or more classes.
+    (Your choice.)
+18. In what-if mode any item's grade can be tried, not only N/A ones. (Your choice.)
+19. What if is option 5 and Quit moves to 6, so Quit stays last (as in decision 12).
+20. The GPA across classes is shown with 2 decimals, .5 going up, and has no letter, since
+    an average like 3.5 isn't on the scale.
+21. A saved class that can't be read is listed in the GPA block but not counted.
+22. What-if mode has only Try a grade and Leave; the goal is changed outside the mode.
