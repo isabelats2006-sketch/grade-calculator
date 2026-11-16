@@ -34,6 +34,9 @@ homework / midterm / final / attendance / project
   left out of every calculation.
 - A category split into parts (R17) has its name repeated, side by side, once per part,
   each with its own weight and grade. See section 15.
+- After the three lines, a split category can have a line saying it drops its lowest grade
+  or keeps only its highest (R19), like `homework: drop lowest`. See section 17. A file
+  without such lines counts every part, as before.
 - Anything after `=` on a line is ignored, so notes like `= total weight` are allowed.
   Blank lines are ignored.
 
@@ -75,6 +78,8 @@ read gets the same treatment.
 | F | 0.0 | 0-59 |
 
 - If nothing is counted yet (all N/A), it says "No grades are out yet" instead of a grade.
+- A category that drops its lowest grade or keeps only its highest (R19) is counted as in
+  section 17.
 
 ## 4. The goal (bullet 6)
 
@@ -94,6 +99,11 @@ Because of rounding, a final grade of 89.5% already counts as 90%.
   the final grade, out of 100, reaches the goal.
 - needed = (goal % − 0.5 − points earned so far) ÷ (total weight of N/A items) × 100,
   rounded **up** to a whole %.
+- When a category drops its lowest grade or keeps only its highest (section 17), which part
+  is dropped depends on what the N/A items get, so the formula can't be used. Then
+  *needed* is the smallest whole % (0 to 100) that, given to every N/A item, reaches the
+  goal, with the dropped part worked out again for those grades. Without such a category
+  this gives the same % as the formula, so the program always works it out this way.
 - How it is reported:
   - between 0 and 100: "You need at least 85% on final and project to get an A-."
   - 0 or less: "You already have an A- even if you get 0 on the rest."
@@ -147,17 +157,21 @@ After the result, a menu:
 4) Delete this class
 5) What if (try grades without saving)
 6) Split a category
-7) Quit
+7) Drop the lowest or keep the highest grade
+8) History (see this session's changes and go back)
+9) Quit
 ```
 
 - **Change a grade**: pick the item by number, then type the new grade (a number or
   `N/A`). It is checked by the same rules as the file. The saved class is updated and the
-  result is shown again.
+  result is shown again. It keeps the category's drop/keep choice (section 17).
 - **Change the goal**: asks the goal question again.
 - **Rename this class** and **Delete this class**: see sections 9 and 10.
 - **What if**: see section 12.
 - **Split a category**: see section 15 (added in round 4; Quit moved from 6 to 7).
-- A wrong choice says `Please type 1, 2, 3, 4, 5, 6 or 7.` and asks again.
+- **Drop the lowest or keep the highest grade**: see section 17 (added in round 5).
+- **History**: see section 16 (added in round 5). Quit moved from 7 to 9, so it stays last.
+- A wrong choice says `Please type 1, 2, 3, 4, 5, 6, 7, 8 or 9.` and asks again.
 - Weights and names are changed by editing the saved file in `saved_classes/` by hand.
 - `q` at any question still quits.
 
@@ -378,13 +392,163 @@ Which one? (number):
 - A category with weight 0 (not in this class) can't be split:
   `attendance is not in this class (weight 0), so it can't be split.`
 - `q` at any of these questions quits the program, and nothing is changed.
+- Splitting again into 2 or more parts keeps the category's drop/keep choice (section 17);
+  joining it back into 1 part removes it, since one part has nothing to drop.
+
+## 16. History of this session (R18)
+
+R18: "There is a new, separate "menu" where you can see the history. You can see the
+changes made in that session and go back. If you close the program, the history is lost,
+so every time you open it, its a blank slate"
+
+Option 8 in the menu of an open class shows the changes made since the program was
+opened, oldest first:
+
+```
+HISTORY: changes made since the program was opened (lost when it is closed)
+  1) Changed homework from 15 to 18
+  2) Split homework into 3 parts
+  3) homework now drops the lowest grade
+
+1) Go back to before a change
+2) Leave the history
+Choose 1 or 2:
+```
+
+- **What is in it**: every change to the class's grades, which are the ones saved to
+  `saved_classes/`:
+  - Change a grade: `Changed homework 1.0 from 8 to 9` (or `from N/A to 9`), using the
+    labels of section 15.
+  - Split a category: `Split homework into 3 parts`, or `Joined homework back into one`
+    for 1 part.
+  - Drop the lowest or keep the highest (section 17): `homework now drops the lowest
+    grade`, `homework now keeps only the highest grade` or `homework now counts all parts`.
+  - A change that leaves everything as it was (typing the grade it already had) is not
+    added.
+- **Not in it**: what-if tries (never saved, section 12), the goal, renames and deletes.
+- **Go back to before a change** asks `Go back to before which change? (number): `, then
+  `Go back to before change 2? Changes 2 to 3 will be undone. Type Yes or No: ` (for the
+  last one: `Change 3 will be undone.`). Yes, No, capitals and spaces work as in section 10.
+  - `Yes` puts the class's grades (and splits and drop/keep choices) back as they were
+    just before that change, so that change and every later one are undone. Those changes
+    leave the history. The saved class is updated (`Saved.`), it says
+    `Went back to before change 2.`, and the normal screen and menu are shown.
+  - `No` says `Nothing was undone.` and shows the history again.
+- **Leave the history** goes back to the normal screen and menu.
+- If there are no changes yet, it says
+  `No changes yet since the program was opened, so there is nothing to go back to.` and
+  shows the menu again.
+- The history is kept only in memory, never in a file. Closing the program (or `q`) loses
+  it, so each time the program is opened the history starts empty.
+- It belongs to the class that is open. Renaming the class keeps it. After the class is
+  deleted and another one is picked, the history starts empty.
+- A wrong choice says `Please type 1 or 2.` and asks again. `q` quits the program.
+
+## 17. Dropping the lowest grade or keeping only the highest (R19)
+
+R19: "In some classes, professors have many hw, or papers, etc and they choose to drop
+the lowest grade or get only the highest grade out of all of them. All of these options
+are allowed now, but the user has to specify that they want it. The standard version is
+that all the categories are taken into consideration for the grade."
+
+A category split into 2 or more parts (section 15) can count its parts in one of three
+ways:
+
+- **count all parts**, the standard: every part counts (as before round 5).
+- **drop lowest**: the part with the lowest % is not counted.
+- **keep highest**: only the part with the highest % counts; the others are not counted.
+
+**How it is counted.** Only parts with a grade (not N/A, weight above 0) can be dropped,
+and only when at least 2 of them are out, so one always counts. "Lowest" and "highest" are
+by the part's own % (6 out of 10 = 60% is lower than 4 out of 5 = 80%). If two parts tie,
+the first one (lower number) is the one dropped or kept. The category keeps its whole
+weight: the parts that are out count as the kept parts' %. With homework 8, 4 and 9 out
+of 10 each and drop lowest, 4 is dropped, and homework is 17 out of 20 = 85% of 30, so
+25.5 out of 30. If homework 1.2 were still N/A, 4 would be dropped and homework would be
+8 out of 10 = 80% of 20, so 16 out of 20.
+
+**In the class file**, after the three lines, one line per category with a choice:
+`<name>: drop lowest` or `<name>: keep highest`, the name as in line 1 (capitals ignored).
+No line means count all parts.
+
+```
+homework / homework / homework / midterm / final / attendance
+10         10         10         30        30      10
+8          4          9          N/A       N/A     10
+homework: drop lowest
+```
+
+- New file problems, explained with the line number like every file problem (section 2):
+  - `Line 4: there is no category called "projet" in line 1.`
+  - `Line 4: "midterm" is not split into parts, so no grade can be dropped. Split it first or remove this line.`
+  - `Line 5: "homework" already has a line saying how to count it (line 4).`
+  - `Line 4: "homework: drop highest" isn't understood. Write it like "homework: drop lowest" or "homework: keep highest".`
+- A file with fewer than 3 lines gets the same message as before (section 2).
+
+**On the screen** (the example above, goal B):
+
+```
+CSC 299
+GOAL = B (3.0) // CURRENT GRADE = B+ (3.3), 89%
+
+1.0        1.1        1.2        2.0       3.0     4.0
+homework / homework / homework / midterm / final / attendance
+10         10         10         30        30      10          = total weight
+8          4          9          N/A       N/A     10          = 35.5 out of 40 = 89% = B+ (3.3)
+-------------------- === --------------------
+homework 1.0:   8 out of 10    = 80%
+homework 1.1:   4 out of 10    = 40%   (dropped)
+homework 1.2:   9 out of 10    = 90%
+midterm:        N/A
+final:          N/A
+attendance:     10 out of 10   = 100%
+TOTAL:          35.5 out of 40 = 89%
+homework drops its lowest grade.
+
+You need at least 79% on midterm and final to get a B.
+```
+
+- A part not counted has `   (dropped)` after its %, as in the R19 example. With keep
+  highest, every part but the highest has it.
+- Under TOTAL, each category with a choice has a line: `homework drops its lowest grade.`
+  or `homework keeps only its highest grade.`, so it is clear even before 2 parts are out.
+- Points that don't end (like 11.666...) are shown with 2 decimals, .5 going up (11.67).
+- It works the same in what-if mode, with the tried grades.
+
+**Drop the lowest or keep the highest grade** (menu option 7):
+
+```
+Which category? (only a split category can drop a grade)
+  1) homework (1), 3 parts, counts all parts
+  2) project (5), 2 parts, drops the lowest grade
+Which one? (number):
+```
+
+- Then:
+
+  ```
+  1) Count all parts (the standard)
+  2) Drop the lowest grade
+  3) Keep only the highest grade
+  Choose 1, 2 or 3:
+  ```
+
+  It says `homework now drops the lowest grade.` (or `keeps only the highest grade`, or
+  `counts all parts`), the saved class is updated (`Saved.`) and the screen is shown again.
+- A wrong answer to either question says `Please type a number from 1 to 3.` (the
+  number of choices) and asks again.
+- If no category is split yet, it says
+  `No category is split into parts yet, so no grade can be dropped. Split one first (option 6).`
+  and shows the menu again.
+- `q` at either question quits the program, and nothing is changed.
 
 ## 8. Tests
 
 `python -m pytest`. Tests cover the logic: reading and checking the file, the grade and
 rounding, the goal input, the "needed" math, and saving/loading, renaming and deleting,
-the Yes/No delete question, what-if mode, the GPA across classes, each item's percentage
-and splitting a category.
+the Yes/No delete question, what-if mode, the GPA across classes, each item's percentage,
+splitting a category, the history and going back, and dropping the lowest grade or keeping
+only the highest.
 
 ## Decisions I made that problem.md doesn't say (please check)
 
@@ -448,3 +612,35 @@ and splitting a category.
     split (there is nothing to split).
 37. The list's labels are padded to at least 16 characters and the `=` signs line up, as
     in the R16 and R17 examples.
+
+### Round 5 (R18, R19)
+
+38. The history lists grade changes, splits and drop/keep choices, the changes saved to
+    the class; not what-if tries, the goal, renames or deletes. (Your choice.)
+39. Going back puts the class back as it was before the change picked, undoing it and
+    every later change, which then leave the history. (Your choice.)
+40. The history is opened from the open-class menu. (Your choice.)
+41. A category can drop its 1 lowest grade or keep only its 1 highest, or count all parts
+    (the standard). (Your choice.)
+42. The category keeps its whole weight; the kept parts' % stands for the dropped ones.
+    (Your choice.)
+43. "Lowest" and "highest" are by each part's own %. (Your choice.)
+44. Only parts with a grade can be dropped, and only when at least 2 are out; the
+    "You need..." % takes the drop into account. (Your choice.)
+45. The choice is made with a new menu option and stored in the file as a line after the
+    three lines, like `homework: drop lowest`. (Your choice.)
+46. Drop/keep is option 7, History option 8, and Quit moves to 9, so Quit stays last (as in
+    decisions 12, 19 and 33).
+47. Going back asks Yes or No first, since undone changes can't be redone.
+48. A change that leaves everything the same is not added to the history.
+49. The history belongs to the open class: renaming keeps it, and it starts empty after
+    the class is deleted and another one picked.
+50. Only split categories (2 or more parts) can drop or keep; a drop/keep line for a
+    category with 1 part is a file problem.
+51. If two parts tie for lowest or highest, the first one is the one dropped or kept.
+52. Splitting again into 2 or more parts keeps the drop/keep choice; joining into 1 part
+    removes it.
+53. A line under TOTAL says which categories drop or keep, so the choice is visible before
+    any part is dropped.
+54. Points that don't end are shown with 2 decimals, .5 going up.
+55. The "(dropped)" mark has 3 spaces before it, as in the R19 example.
