@@ -23,12 +23,29 @@ GOAL = B (3.0) // CURRENT GRADE = C+ (2.3), 79%
 homework / midterm / final / attendance / project
 30         30        20      10           10       = total weight
 20         25        N/A     10           N/A      = 55 out of 70 = 79% = C+ (2.3)
+-------------------- === --------------------
+homework:       20 out of 30 = 67%
+midterm:        25 out of 30 = 83%
+final:          N/A
+attendance:     10 out of 10 = 100%
+project:        N/A
+TOTAL:          55 out of 70 = 79%
 
 You need at least 92% on final and project to get a B.
 ```
 
+Under the table, each item shows its own percentage, so you can see how you are doing in
+each category.
+
 From the menu you can change a grade (it is saved), change the goal, rename the class,
-delete it, try grades in what-if mode, or quit. In what-if mode you can try any grade
+delete it, try grades in what-if mode, split a category into parts, or quit.
+
+**Splitting a category.** Any category except midterm and final can be split into 2 to
+10 parts, for example the 2 homeworks given so far out of 4. It asks how many parts, each
+part's weight (they must add up to the category's weight) and each part's grade. The
+parts are numbered 1.0 to 1.9 for homework, 4.0 to 4.9 for attendance, and so on, and
+each shows its own percentage. Each part can be changed or tried in what-if mode on its
+own. Splitting again redoes it, and 1 part joins it back into one. In what-if mode you can try any grade
 ("what if I get 18 on the final?") and see your grade and what you still need. Nothing
 there is saved, and when you leave the mode your real grades are back.
 
@@ -61,6 +78,8 @@ Three lines: names, weights, grades. See `examples/example-class.txt`.
   `attendance`, in that order. Others can follow. Capitals don't matter.
 - The weights add up to exactly 100. Use 0 for something the class doesn't have.
 - The grades are points out of each weight, or `N/A` if not out yet.
+- A split category is its name repeated side by side, one per part, like
+  `homework / homework / midterm / ...`, each with its own weight and grade.
 - Anything after `=` on a line is a note and is ignored.
 
 If the file breaks a rule, the program lists every problem with its line number.
