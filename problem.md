@@ -84,3 +84,13 @@ I have a lot on my plate right now and it would be much easier if I didnt have t
   (here the numbers are only shown if needed)
   ```
 
+
+# Round 5 requirements
+
+- R18: There is a new, separate "menu" where you can see the history. You can see the changes made in that session and go back. If you close the program, the history is lost, so every time you open it, its a blank slate
+- R19: In some classes, professors have many hw, or papers, etc and they choose to drop the lowest grade or get only the highest grade out of all of them. All of these options are allowed now, but the user has to specify that they want it. The standard version is that all the categories are taken into consideration for the grade. It should look like this:
+```
+  homework 1.0:   8 out of 10  = 80%
+  homework 1.1:   4 out of 10  = 40%   (dropped)
+  homework 1.2:   9 out of 10  = 90%
+  ```
