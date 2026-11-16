@@ -38,14 +38,28 @@ Under the table, each item shows its own percentage, so you can see how you are 
 each category.
 
 From the menu you can change a grade (it is saved), change the goal, rename the class,
-delete it, try grades in what-if mode, split a category into parts, or quit.
+delete it, try grades in what-if mode, split a category into parts, drop the lowest grade
+of a split category (or keep only its highest), see the history of your changes, or quit.
 
 **Splitting a category.** Any category except midterm and final can be split into 2 to
 10 parts, for example the 2 homeworks given so far out of 4. It asks how many parts, each
 part's weight (they must add up to the category's weight) and each part's grade. The
 parts are numbered 1.0 to 1.9 for homework, 4.0 to 4.9 for attendance, and so on, and
 each shows its own percentage. Each part can be changed or tried in what-if mode on its
-own. Splitting again redoes it, and 1 part joins it back into one. In what-if mode you can try any grade
+own. Splitting again redoes it, and 1 part joins it back into one.
+
+**Dropping the lowest grade.** If your professor drops the lowest homework (or counts
+only the best one), choose that for the split category in the menu. The part not counted
+shows `(dropped)`, and the category keeps its whole weight: with 8, 4 and 9 out of 10
+and the 4 dropped, homework counts as 85%. Only grades already out can be dropped, and
+the "You need..." % takes the drop into account. By default every part counts.
+
+**History.** The History option lists the changes you made since you opened the
+program (grades, splits, drop choices). You can go back to before any of them, which
+undoes that change and every later one, and saves the class. The history is kept only
+while the program is open, so it starts empty each time.
+
+**What if.** In what-if mode you can try any grade
 ("what if I get 18 on the final?") and see your grade and what you still need. Nothing
 there is saved, and when you leave the mode your real grades are back.
 
@@ -72,7 +86,8 @@ python -m pytest
 
 ## The class file
 
-Three lines: names, weights, grades. See `examples/example-class.txt`.
+Three lines: names, weights, grades (plus any drop lines, below). See
+`examples/example-class.txt`.
 
 - The names start with `homework` (or `hw` or `assignments`), `midterm`, `final`,
   `attendance`, in that order. Others can follow. Capitals don't matter.
@@ -80,6 +95,8 @@ Three lines: names, weights, grades. See `examples/example-class.txt`.
 - The grades are points out of each weight, or `N/A` if not out yet.
 - A split category is its name repeated side by side, one per part, like
   `homework / homework / midterm / ...`, each with its own weight and grade.
+- After the three lines, a split category can have a line `homework: drop lowest` or
+  `homework: keep highest`. The menu writes it for you.
 - Anything after `=` on a line is a note and is ignored.
 
 If the file breaks a rule, the program lists every problem with its line number.
