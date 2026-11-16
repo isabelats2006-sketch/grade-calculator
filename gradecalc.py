@@ -291,7 +291,8 @@ RULE_TEXT = {DROP_LOWEST: "drops its lowest grade", KEEP_HIGHEST: "keeps only it
 MENU = [
     "", "1) Change a grade", "2) Change the goal", "3) Rename this class", "4) Delete this class",
     "5) What if (try grades without saving)", "6) Split a category",
-    "7) Drop the lowest or keep the highest grade", "8) Quit",
+    "7) Drop the lowest or keep the highest grade",
+    "8) History (see this session's changes and go back)", "9) Quit",
 ]
 
 
@@ -299,13 +300,23 @@ def run_menu(items, name, goal, ask, say, folder):
     """Show the result and the menu until the user quits (raises Quit).
 
     Returns only if the class was deleted, so the caller can go back to the saved-class list.
+    The history (R18) lives only here, in memory: it starts empty each time a class is
+    opened and is lost when the program closes.
     """
+    history = []  # (what changed, the items just before it), oldest first
+
+    def remember(text, before, after):
+        if after != before:  # a change that leaves everything as it was is not added
+            history.append((text, before))
+
     while True:
         for line in screen(items, name, goal) + MENU:
             say(line)
-        choice = _ask(ask, "Choose 1 to 8: ").strip()
+        choice = _ask(ask, "Choose 1 to 9: ").strip()
         if choice == "1":
-            items = change_a_grade(items, ask, say)
+            changed = change_a_grade(items, ask, say)
+            remember(grade_change_text(items, changed), items, changed)
+            items = changed
             save_class(folder, name, items)
             say("Saved.")
         elif choice == "2":
@@ -321,19 +332,80 @@ def run_menu(items, name, goal, ask, say, folder):
         elif choice == "6":
             split = ask_split(items, ask, say)
             if split is not None:
-                items = split
+                changed, text = split
+                remember(text, items, changed)
+                items = changed
                 save_class(folder, name, items)
                 say("Saved.")
         elif choice == "7":
             counted = ask_rule(items, ask, say)
             if counted is not None:
-                items = counted
+                changed, text = counted
+                remember(text, items, changed)
+                items = changed
                 save_class(folder, name, items)
                 say("Saved.")
         elif choice == "8":
+            back = ask_history(history, ask, say)
+            if back is not None:
+                items = back
+                save_class(folder, name, items)
+                say("Saved.")
+        elif choice == "9":
             raise Quit
         else:
-            say("Please type 1, 2, 3, 4, 5, 6, 7 or 8.")
+            say("Please type 1, 2, 3, 4, 5, 6, 7, 8 or 9.")
+        say("")
+
+
+# --- History of this session (spec.md section 16, R18) ---
+
+HISTORY_MENU = ["", "1) Go back to before a change", "2) Leave the history"]
+
+
+def grade_change_text(before, after):
+    """How Change a grade is listed in the history: "Changed homework 1.0 from 8 to 9"."""
+    for item, new, label in zip(before, after, labels(before)):
+        if item != new:
+            return f"Changed {label} from {_grade_text(item.grade)} to {_grade_text(new.grade)}"
+    return "Nothing changed"  # not added to the history (run_menu checks)
+
+
+def _grade_text(grade):
+    return "N/A" if grade is None else show_number(grade)
+
+
+def ask_history(history, ask, say):
+    """Show this session's changes and let the user go back to before one of them.
+
+    Returns the items as they were before the change picked (that change and every later
+    one leave the history), or None if nothing was undone.
+    """
+    if not history:
+        say("No changes yet since the program was opened, so there is nothing to go back to.")
+        return None
+    while True:
+        say("HISTORY: changes made since the program was opened (lost when it is closed)")
+        for number, (text, _) in enumerate(history, start=1):
+            say(f"  {number}) {text}")
+        for line in HISTORY_MENU:
+            say(line)
+        choice = _ask(ask, "Choose 1 or 2: ").strip()
+        if choice == "2":
+            return None
+        if choice == "1":
+            last = len(history)
+            number = _ask_number(ask, say, last, "Go back to before which change? (number): ")
+            undone = (f"Change {number} will be undone." if number == last
+                      else f"Changes {number} to {last} will be undone.")
+            if _ask_yes_no(ask, say, f"Go back to before change {number}? {undone} Type Yes or No: "):
+                items = history[number - 1][1]
+                del history[number - 1:]
+                say(f"Went back to before change {number}.")
+                return items
+            say("Nothing was undone.")
+        else:
+            say("Please type 1 or 2.")
         say("")
 
 
@@ -383,18 +455,24 @@ def ask_rename(name, ask, say, folder):
         return new_name
 
 
+def _ask_yes_no(ask, say, question):
+    """Ask until Yes or No is typed (capitals and spaces around it don't matter).
+    True for Yes. Used to delete a class (R12) and to go back in the history (R18).
+    """
+    while True:
+        typed = _ask(ask, question).strip().lower()
+        if typed in ("yes", "no"):
+            return typed == "yes"
+        say("Please type Yes or No.")
+
+
 def ask_delete(name, ask, say, folder):
     """Ask first until Yes or No is typed; delete only on Yes. True if it was deleted."""
     question = (
         f'Are you sure you want to delete "{name}"? It will be lost. '
         "Type Yes to delete it or No to keep it: "
     )
-    while True:
-        typed = _ask(ask, question).strip().lower()
-        if typed in ("yes", "no"):
-            break
-        say("Please type Yes or No.")
-    if typed == "no":
+    if not _ask_yes_no(ask, say, question):
         say(f'Kept "{name}".')
         return False
     try:
@@ -409,8 +487,9 @@ def ask_delete(name, ask, say, folder):
 # --- Splitting a category (spec.md section 15, R17) ---
 
 def ask_split(items, ask, say):
-    """Ask which category to split and its parts. Returns the new items, or None if the
-    category chosen can't be split (weight 0). Splitting a split category redoes it.
+    """Ask which category to split and its parts. Returns (the new items, the history's
+    line for it), or None if the category chosen can't be split (weight 0). Splitting a
+    split category redoes it.
     """
     choices = splittable(items)
     say("Which category? (midterm and final can't be split)")
@@ -447,7 +526,8 @@ def ask_split(items, ask, say):
                 break
             except GradeProblem as problem:
                 say(str(problem))
-    return split_category(items, group, parts)
+    text = f"Split {name} into {count} parts" if count > 1 else f"Joined {name} back into one"
+    return split_category(items, group, parts), text
 
 
 # --- Dropping the lowest grade or keeping the highest (spec.md section 17, R19) ---
@@ -463,8 +543,8 @@ RULE_MENU = [
 
 
 def ask_rule(items, ask, say):
-    """Ask which split category and how it counts its parts. Returns the new items, or
-    None if no category is split (nothing can be dropped).
+    """Ask which split category and how it counts its parts. Returns (the new items, the
+    history's line for it), or None if no category is split (nothing can be dropped).
     """
     choices = [
         (number, group) for number, group in enumerate(categories(items), start=1)
@@ -482,8 +562,9 @@ def ask_rule(items, ask, say):
     for line in RULE_MENU:
         say(line)
     rule = (None, DROP_LOWEST, KEEP_HIGHEST)[_ask_number(ask, say, 3, "Choose 1, 2 or 3: ") - 1]
-    say(f"{items[group[0]].name} now {RULE_CHOICE[rule]}.")
-    return with_rule(items, group, rule)
+    text = f"{items[group[0]].name} now {RULE_CHOICE[rule]}"  # also the history's line (R18)
+    say(text + ".")
+    return with_rule(items, group, rule), text
 
 
 def _ask_part_weight(ask, say, question):
