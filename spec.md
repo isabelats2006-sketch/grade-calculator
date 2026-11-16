@@ -349,8 +349,8 @@ TOTAL:          38 out of 50 = 76%
 
 - In the list (section 14), only parts of a split category show their number
   (`homework 1.0:`); other items show just their name (`midterm:`).
-- The same labels are used in the "You need..." sentence ("You need at least 85% on
-  homework 1.1 and final to get a B.") and in the Change a grade and Try a grade lists.
+- The same labels are used in the "You need..." sentence ("You need at least 89% on
+  homework 1.1 and final to get a B.", for the example above) and in the Change a grade and Try a grade lists.
 
 **Split a category** (menu option 6):
 
