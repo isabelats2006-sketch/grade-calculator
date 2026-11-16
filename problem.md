@@ -51,3 +51,36 @@ I have a lot on my plate right now and it would be much easier if I didnt have t
 - R12 (CHANGED): It can delete a saved class and it double checks if the user wants to actually delete the class by asking: are you sure you want to delete it? it will be lost. Instead of typing the class name, you should type "Yes" or "No" to confirm the deletion
 - R14: If the user has more then one class, then it can see all the GPA across all class together
 - R15: The user can run an what if. It should be a separate option where he chooses the grades he will have and it will no be saved, once he is quits that mode, the grades should go back to what they were
+
+# Round 4 requirements
+
+- R16: Each item has their own percentage under them, so that the user can see how well (or bad) their doing in that specific category. It should look like this: 
+```
+  homework / midterm / final / attendance 
+  20         30        40      10         = total weight
+  15         20        N/A     10         = 45 out of 60 = X GPA and X letter grade 
+  -------------------- === --------------------
+  homework:       15 out of 20 = 75%
+  midterm:        20 out of 30 = 67%
+  final:          N/A
+  attendance:     10 out of 10 = 100%
+  TOTAL:          45 out of 60 = 75%
+  ```
+
+- R17: Any category, aside form Midterm and Final (that should ALWAYS BE 2.0 and 3.0), can be broken into smaller categories. The user has to choose to do this, if they dont, the normal case is the one presented preeviously. The idea behind it is that if the user has only been given 2 out of the 4 hw in the quarter they can see how well theyve done in those specific 2. It also adds more detail into the whatif category because they can look into possibilities of their future projects. The same works for attendance, it there is only been held 5 out of 20 classes (for example) the user can see how well they done in those classes. The user can divided this categories up to 10 times (from 1.0 to 1.9), any more then that, will not be allowed. Any separtion should always be done like the example (X.0 - X.9). It should look like this:
+```
+  1.0        1.1        2.0       3.0     4.0
+  homework / homework / midterm / final / attendance 
+  10         10         30        40      10         = total weight
+  8          N/A        20        N/A     10         = 38 out of 50 = X GPA and X letter grade   
+  (the numbers here are always shown to the user)     
+  -------------------- === --------------------
+  homework 1.0:   8 out of 10  = 80%
+  homework 1.1:   N/A
+  midterm:        20 out of 30 = 67%
+  final:          N/A
+  attendance:     10 out of 10 = 100%
+  TOTAL:          38 out of 50 = 76%
+  (here the numbers are only shown if needed)
+  ```
+
