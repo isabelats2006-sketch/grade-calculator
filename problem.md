@@ -94,3 +94,24 @@ I have a lot on my plate right now and it would be much easier if I didnt have t
   homework 1.1:   4 out of 10  = 40%   (dropped)
   homework 1.2:   9 out of 10  = 90%
   ```
+
+# Round 6 requirements
+
+- R20: There is a new options called clear all grades, where the user can delete all the current grades. They go bak to being N/A and the history allows to go back in case it was a mistake. It clears the current class, the only way to go back is through the history. Splits also stay.
+- R21: There is a new option called see the grade scale that takes you to another menu where you can click on any of the current attributes in a class (such as hw, midterm, final, etc) and once inside you see the full grade scale and can get a better understanding of how well (or not) your doing. The last two options in the menu are to see the grade in one class and the grades of all classes put together. It should look like this:
+```
+  GRADE SCALE (nearest whole %, so 93.5% is 94% = A)
+  A  = 4.0 = 94 to 100%
+  A- = 3.7 = 90 to 93%   <- your goal
+  B+ = 3.3 = 87 to 89%   <- you are here (89%)
+  B  = 3.0 = 83 to 86%   
+  B- = 2.7 = 80 to 82%
+  C+ = 2.3 = 77 to 79%
+  C  = 2.0 = 73 to 76%
+  C- = 1.7 = 70 to 72%
+  D+ = 1.3 = 67 to 69%
+  D  = 1.0 = 60 to 66%
+  F  = 0.0 = 0 to 59%
+
+  You are 1% from an A- (90%).
+  ```
