@@ -159,7 +159,9 @@ After the result, a menu:
 6) Split a category
 7) Drop the lowest or keep the highest grade
 8) History (see this session's changes and go back)
-9) Quit
+9) Clear all grades
+10) See the grade scale
+11) Quit
 ```
 
 - **Change a grade**: pick the item by number, then type the new grade (a number or
@@ -171,7 +173,11 @@ After the result, a menu:
 - **Split a category**: see section 15 (added in round 4; Quit moved from 6 to 7).
 - **Drop the lowest or keep the highest grade**: see section 17 (added in round 5).
 - **History**: see section 16 (added in round 5). Quit moved from 7 to 9, so it stays last.
-- A wrong choice says `Please type 1, 2, 3, 4, 5, 6, 7, 8 or 9.` and asks again.
+- **Clear all grades**: see section 18 (added in round 6).
+- **See the grade scale**: see section 19 (added in round 6). Quit moved from 9 to 11, so it
+  stays last.
+- The question is `Choose 1 to 11: `. A wrong choice says
+  `Please type 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 or 11.` and asks again.
 - Weights and names are changed by editing the saved file in `saved_classes/` by hand.
 - `q` at any question still quits.
 
@@ -423,6 +429,8 @@ Choose 1 or 2:
     for 1 part.
   - Drop the lowest or keep the highest (section 17): `homework now drops the lowest
     grade`, `homework now keeps only the highest grade` or `homework now counts all parts`.
+  - Clear all grades (section 18, added in round 6): `Cleared all grades`. Going back to
+    before it brings every grade back.
   - A change that leaves everything as it was (typing the grade it already had) is not
     added.
 - **Not in it**: what-if tries (never saved, section 12), the goal, renames and deletes.
@@ -542,13 +550,131 @@ Which one? (number):
   and shows the menu again.
 - `q` at either question quits the program, and nothing is changed.
 
+## 18. Clearing all grades (R20)
+
+R20: "There is a new options called clear all grades, where the user can delete all the
+current grades. They go bak to being N/A and the history allows to go back in case it was
+a mistake. It clears the current class, the only way to go back is through the history.
+Splits also stay."
+
+Option 9 in the menu of an open class. It always asks first:
+
+```
+Are you sure you want to clear all the grades of "CSC 299"? They will all be N/A. You can go back with the history (option 8). Type Yes or No: 
+```
+
+- Yes, No, capitals and spaces work as in section 10. Anything else says
+  `Please type Yes or No.` and asks again.
+- `Yes` makes every grade of the open class N/A. Nothing else changes: the names, the
+  weights, the splits (section 15) and the drop/keep choices (section 17) all stay. It says
+  `Cleared all the grades of "CSC 299". They are all N/A now.`, the saved class is updated
+  (`Saved.`) and the screen is shown again.
+- It is added to the history (section 16) as `Cleared all grades`, so going back to before
+  it brings every grade back. That is the only way to get them back.
+- `No` says `Nothing was cleared.` and shows the menu again.
+- If every grade is already N/A, it says
+  `All the grades are already N/A, so there is nothing to clear.`, asks nothing and adds
+  nothing to the history.
+- Only the open class is cleared; other saved classes are not touched.
+- `q` at the question quits the program, and nothing is cleared.
+
+## 19. The grade scale (R21)
+
+R21: "There is a new option called see the grade scale that takes you to another menu
+where you can click on any of the current attributes in a class (such as hw, midterm,
+final, etc) and once inside you see the full grade scale and can get a better
+understanding of how well (or not) your doing. The last two options in the menu are to see
+the grade in one class and the grades of all classes put together."
+
+Option 10 in the menu of an open class. With the class of section 17 (goal A-):
+
+```
+GRADE SCALE: see where a grade is on the scale
+  1) homework 1.0
+  2) homework 1.1
+  3) homework 1.2
+  4) midterm
+  5) final
+  6) attendance
+  7) The whole class (CSC 299)
+  8) All your classes together
+Pick one by number, or press Enter to go back: 
+```
+
+- One line per item of the class, with the labels of section 15, so each part of a split
+  category is its own line. Items not out yet (N/A) are listed too. Items with weight 0
+  (not in this class) are not listed.
+- The last two are always the whole class and all the saved classes together.
+- Enter (nothing typed) goes back to the normal screen and menu. Anything else that is not
+  one of the numbers says `Please type a number from 1 to 8, or press Enter to go back.` and
+  asks again. `q` quits the program.
+
+Picking one shows a line saying what it is, then the full scale with two marks. Picking 7
+in the example above:
+
+```
+CSC 299: 35.5 out of 40 = 89% = B+ (3.3)
+
+GRADE SCALE (nearest whole %, so 93.5% is 94% = A)
+A  = 4.0 = 94 to 100%
+A- = 3.7 = 90 to 93%   <- your goal
+B+ = 3.3 = 87 to 89%   <- you are here (89%)
+B  = 3.0 = 83 to 86%
+B- = 2.7 = 80 to 82%
+C+ = 2.3 = 77 to 79%
+C  = 2.0 = 73 to 76%
+C- = 1.7 = 70 to 72%
+D+ = 1.3 = 67 to 69%
+D  = 1.0 = 60 to 66%
+F  = 0.0 = 0 to 59%
+
+You are 1% from an A- (90%).
+```
+
+Then, after a blank line, the grade scale menu again, so another one can be picked.
+
+- **The first line**:
+  - an item: as in its line of section 14, like `homework 1.0: 8 out of 10 = 80%`, or
+    `final: N/A`. A dropped part (section 17) has `   (dropped)` after its %.
+  - the whole class: `CSC 299: 35.5 out of 40 = 89% = B+ (3.3)`, as on the screen
+    (section 5), or `CSC 299: no grades out yet`.
+  - all classes together: the plain average of each saved class's current % (rounded as in
+    section 3), itself rounded to the nearest whole %, .5 going up. Then each class, like
+    the GPA across classes (section 13):
+
+    ```
+    All your classes together: 90%, the average of 2 classes
+      CSC 299: 95%
+      MATH 101: 85%
+      WRD 101: no grades out yet, not counted
+    ```
+
+    A class that can't be read is listed as `can't be read, not counted`. If no class has
+    grades out yet, the first line is `All your classes together: no grades out yet`. It
+    is shown even when there is only 1 saved class.
+- **The scale** is the one in section 3, written as in the R21 example: the letter padded
+  to 2 characters, then `= GPA = lowest to highest%`.
+- **The marks**, 3 spaces after the line they belong to:
+  - `<- your goal` on the goal's line. A goal typed as a % (like 91%) marks the line that %
+    is in: `<- your goal (91%)`.
+  - `<- you are here (89%)` on the line of the rounded % (the item's own %, the class's
+    current grade, or the average of all classes).
+  - On the same line, both: `<- your goal, you are here (91%)`.
+  - The goal is the one of the open class, for every choice, all classes included.
+- **The last line**, after a blank line, compares the rounded % with the goal's lowest %:
+  - below it: `You are 1% from an A- (90%).` (for a % goal: `You are 2% from your goal of 91%.`)
+  - at or above it: `You reached your goal of A- (90%).` (or `You reached your goal of 91%.`)
+  - nothing out yet: `No grade is out yet, so you are not on the scale yet.`, and there is no
+    `you are here` mark.
+- Nothing is changed or saved here.
+
 ## 8. Tests
 
 `python -m pytest`. Tests cover the logic: reading and checking the file, the grade and
 rounding, the goal input, the "needed" math, and saving/loading, renaming and deleting,
 the Yes/No delete question, what-if mode, the GPA across classes, each item's percentage,
-splitting a category, the history and going back, and dropping the lowest grade or keeping
-only the highest.
+splitting a category, the history and going back, dropping the lowest grade or keeping
+only the highest, clearing all grades, and the grade scale.
 
 ## Decisions I made that problem.md doesn't say (please check)
 
@@ -644,3 +770,35 @@ only the highest.
     any part is dropped.
 54. Points that don't end are shown with 2 decimals, .5 going up.
 55. The "(dropped)" mark has 3 spaces before it, as in the R19 example.
+
+### Round 6 (R20, R21)
+
+56. Clearing asks Yes or No first; only the grades become N/A, and the splits and
+    drop/keep choices stay. (Your choice.)
+57. The last line of the grade scale compares with the goal ("You are 1% from an A-
+    (90%)." or "You reached your goal of A- (90%)."), and the goal mark is the open class's
+    goal on every scale. (Your choice.)
+58. In the grade scale menu, each part of a split category is listed on its own.
+    (Your choice.)
+59. All classes together is the plain average of the classes' %, placed on the scale.
+    (Your choice.)
+60. The all-classes scale uses the open class's goal too. (Your choice.)
+61. The grade scale is option 10 of the open-class menu, Clear all grades option 9, and
+    Quit moves to 11, so Quit stays last; N/A items are listed and show the scale with only
+    the goal mark. (Your choice.)
+62. If every grade is already N/A, Clear all grades says so, asks nothing and adds nothing
+    to the history.
+63. Clearing is in the history as `Cleared all grades`.
+64. Items with weight 0 (not in this class) are not listed in the grade scale menu.
+65. The grade scale menu is left by pressing Enter, so its last two options are the whole
+    class and all classes, as R21 says.
+66. After a scale is shown, the grade scale menu is shown again, so another can be picked.
+67. The marks are 3 spaces after the line, `<- your goal` and `<- you are here (89%)`, as
+    in the R21 example; both on one line are `<- your goal, you are here (91%)`; a % goal is
+    `<- your goal (91%)`.
+68. "You are 1% from" uses the rounded %s, as in the R21 example (89% to 90%).
+69. The average of all classes uses each class's rounded %, the one shown for it, then
+    rounds .5 up. Classes with no grades or that can't be read are listed but not counted,
+    as in section 13, and it is shown even with 1 saved class.
+70. A dropped part keeps its own % on the scale, with `(dropped)` in its first line.
+71. Clear all grades and the grade scale are not in what-if mode.
