@@ -13,6 +13,7 @@ from pathlib import Path
 
 from grades import (
     DROP_LOWEST, KEEP_HIGHEST, FileProblems, GoalProblem, GradeProblem, Item, average_gpa,
+    average_percent, distance_text, scale_lines,
     categories, cleared, current_grade, dropped, has_grades,
     MAX_PARTS, SplitProblem, describe_needed, is_split, item_percent, labels, needed_for, numbers,
     parse_class, parse_goal, parse_grade, parse_part_weight, show_number, split_category,
@@ -292,7 +293,8 @@ MENU = [
     "", "1) Change a grade", "2) Change the goal", "3) Rename this class", "4) Delete this class",
     "5) What if (try grades without saving)", "6) Split a category",
     "7) Drop the lowest or keep the highest grade",
-    "8) History (see this session's changes and go back)", "9) Clear all grades", "10) Quit",
+    "8) History (see this session's changes and go back)", "9) Clear all grades",
+    "10) See the grade scale", "11) Quit",
 ]
 
 
@@ -312,7 +314,7 @@ def run_menu(items, name, goal, ask, say, folder):
     while True:
         for line in screen(items, name, goal) + MENU:
             say(line)
-        choice = _ask(ask, "Choose 1 to 10: ").strip()
+        choice = _ask(ask, "Choose 1 to 11: ").strip()
         if choice == "1":
             changed = change_a_grade(items, ask, say)
             remember(grade_change_text(items, changed), items, changed)
@@ -359,9 +361,11 @@ def run_menu(items, name, goal, ask, say, folder):
                 save_class(folder, name, items)
                 say("Saved.")
         elif choice == "10":
+            see_grade_scale(items, name, goal, ask, say, folder)
+        elif choice == "11":
             raise Quit
         else:
-            say("Please type 1, 2, 3, 4, 5, 6, 7, 8, 9 or 10.")
+            say("Please type 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 or 11.")
         say("")
 
 
@@ -435,6 +439,86 @@ def ask_clear(items, name, ask, say):
         return False
     say(f'Cleared all the grades of "{name}". They are all N/A now.')
     return True
+
+
+# --- The grade scale (spec.md section 19, R21) ---
+
+def see_grade_scale(items, name, goal, ask, say, folder):
+    """The grade scale menu: each item in the class, then the whole class, then all saved
+    classes together. Each one picked shows the scale with the goal and where it is.
+    Enter goes back. Nothing is changed or saved.
+    """
+    shown = labels(items)
+    left_out = dropped(items)
+    choices = [position for position, item in enumerate(items) if item.weight > 0]
+    count = len(choices) + 2
+    while True:
+        say("GRADE SCALE: see where a grade is on the scale")
+        for number, position in enumerate(choices, start=1):
+            say(f"  {number}) {shown[position]}")
+        say(f"  {count - 1}) The whole class ({name})")
+        say(f"  {count}) All your classes together")
+        while True:
+            typed = _ask(ask, "Pick one by number, or press Enter to go back: ").strip()
+            if not typed:
+                return
+            if typed.isdigit() and 1 <= int(typed) <= count:
+                break
+            say(f"Please type a number from 1 to {count}, or press Enter to go back.")
+        picked = int(typed)
+        if picked <= len(choices):
+            position = choices[picked - 1]
+            first, here = _item_on_scale(items[position], shown[position], position in left_out)
+        elif picked == count - 1:
+            first, here = _class_on_scale(items, name)
+        else:
+            first, here = _all_classes_on_scale(folder)
+        for line in first + [""] + scale_lines(here, goal) + ["", distance_text(here, goal), ""]:
+            say(line)
+
+
+def _item_on_scale(item, label, is_dropped):
+    """(first lines, rounded %) for one item: "homework 1.0: 8 out of 10 = 80%"."""
+    here = item_percent(item)
+    if here is None:
+        return [f"{label}: N/A"], None
+    mark = "   (dropped)" if is_dropped else ""
+    out_of = f"{show_number(item.grade)} out of {show_number(item.weight)}"
+    return [f"{label}: {out_of} = {here}%{mark}"], here
+
+
+def _class_on_scale(items, name):
+    """(first lines, rounded %) for the whole class, as on the screen."""
+    grade = current_grade(items)
+    if grade is None:
+        return [f"{name}: no grades out yet"], None
+    return [
+        f"{name}: {show_number(grade.earned)} out of {show_number(grade.out_of)} = "
+        f"{grade.rounded}% = {grade.letter} ({grade.gpa})"
+    ], grade.rounded
+
+
+def _all_classes_on_scale(folder):
+    """(first lines, rounded %) for all saved classes together: the plain average of each
+    class's rounded %. Classes with no grades yet, or that can't be read, are not counted.
+    """
+    percents, lines = [], []
+    for name in list_classes(folder):
+        try:
+            grade = current_grade(load_class(folder, name))
+        except (FileProblems, OSError, UnicodeDecodeError):
+            lines.append(f"  {name}: can't be read, not counted")
+            continue
+        if grade is None:
+            lines.append(f"  {name}: no grades out yet, not counted")
+        else:
+            percents.append(grade.rounded)
+            lines.append(f"  {name}: {grade.rounded}%")
+    here = average_percent(percents)
+    if here is None:
+        return ["All your classes together: no grades out yet"] + lines, None
+    classes = "class" if len(percents) == 1 else "classes"
+    return [f"All your classes together: {here}%, the average of {len(percents)} {classes}"] + lines, here
 
 
 # --- What if (spec.md section 12) ---
