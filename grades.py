@@ -537,11 +537,12 @@ class Goal:
     lowest: int  # the goal is reached when the rounded final % is at least this
     label: str  # "A- (3.7)" or "91%"
     with_article: str  # "an A-", "a B" or "91%", for sentences like "to get an A-"
+    letter: str | None = None  # "A-" for a goal typed as a letter or GPA, None for a %
 
 
 def _letter_goal(letter, gpa, lowest):
     article = "an" if letter[0] in "AF" else "a"
-    return Goal(lowest, f"{letter} ({gpa})", f"{article} {letter}")
+    return Goal(lowest, f"{letter} ({gpa})", f"{article} {letter}", letter)
 
 
 def parse_goal(text):
@@ -653,3 +654,54 @@ def describe_needed(needed, goal):
     final = needed.final
     reached = "reached" if final.rounded >= goal.lowest else "did not reach"
     return f"Your final grade is {final.letter}. You {reached} your goal of {goal.label}."
+
+
+# --- The grade scale (spec.md section 19, R21) ---
+
+SCALE_TITLE = "GRADE SCALE (nearest whole %, so 93.5% is 94% = A)"
+
+
+def _scale_rows():
+    """(letter, GPA, lowest %, highest %) for each line of the scale, best first."""
+    highest = [100] + [lowest - 1 for _, _, lowest in SCALE[:-1]]
+    return [(letter, gpa, lowest, top) for (letter, gpa, lowest), top in zip(SCALE, highest)]
+
+
+def scale_lines(here, goal):
+    """The full scale, with "<- your goal" on the goal's line and "<- you are here (89%)"
+    on the line of here (a rounded %, or None if no grade is out yet).
+    """
+    goal_letter, _ = letter_for(goal.lowest)
+    here_letter = None if here is None else letter_for(here)[0]
+    lines = [SCALE_TITLE]
+    for letter, gpa, lowest, highest in _scale_rows():
+        marks = []
+        if letter == goal_letter:
+            # A goal typed as a % may be inside a line (91% is in A-), so it says which.
+            marks.append("your goal" if goal.letter else f"your goal ({goal.lowest}%)")
+        if letter == here_letter:
+            marks.append(f"you are here ({here}%)")
+        line = f"{letter:<2} = {gpa} = {lowest} to {highest}%"
+        lines.append(line + "   <- " + ", ".join(marks) if marks else line)
+    return lines
+
+
+def distance_text(here, goal):
+    """The line under the scale: how far the rounded % here is from the goal."""
+    if here is None:
+        return "No grade is out yet, so you are not on the scale yet."
+    if here >= goal.lowest:
+        target = f"{goal.letter} ({goal.lowest}%)" if goal.letter else goal.label
+        return f"You reached your goal of {target}."
+    if goal.letter:
+        return f"You are {goal.lowest - here}% from {goal.with_article} ({goal.lowest}%)."
+    return f"You are {goal.lowest - here}% from your goal of {goal.label}."
+
+
+def average_percent(percents):
+    """The plain average of these rounded %s, to the nearest whole %, .5 going up, or None
+    if there are none. Used for all classes together on the grade scale (R21).
+    """
+    if not percents:
+        return None
+    return round_percent(Fraction(sum(percents), len(percents)))
