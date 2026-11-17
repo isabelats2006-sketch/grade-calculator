@@ -326,7 +326,7 @@ def test_a_category_with_weight_0_cant_be_split(tmp_path):
     text = "homework / midterm / final / attendance\n30 30 40 0\n20 20 N/A 0\n"
     printed, questions, saved = split_run(tmp_path, text, ["6", "2", "q"])
     assert "attendance is not in this class (weight 0), so it can't be split." in printed
-    assert questions[-1] == "Choose 1 to 9: "  # back to the menu
+    assert questions[-1] == "Choose 1 to 10: "  # back to the menu
     assert load_class(saved, "CSC 299") == parse_class(text)
 
 

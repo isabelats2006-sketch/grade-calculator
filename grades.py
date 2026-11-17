@@ -184,6 +184,18 @@ def with_rule(items, group, rule):
     return changed
 
 
+# --- Clearing all grades (spec.md section 18, R20) ---
+
+def has_grades(items):
+    """True if at least one item in the class has a grade (weight above 0, not N/A)."""
+    return any(_is_out(item) for item in items)
+
+
+def cleared(items):
+    """The items with every grade N/A. Names, weights, splits and drop/keep choices stay."""
+    return [replace(item, grade=None) for item in items]
+
+
 def _read_rules(rule_lines, names, groups):
     """Read the lines after the 3 lines, like "homework: drop lowest" (R19).
 

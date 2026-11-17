@@ -13,7 +13,7 @@ from pathlib import Path
 
 from grades import (
     DROP_LOWEST, KEEP_HIGHEST, FileProblems, GoalProblem, GradeProblem, Item, average_gpa,
-    categories, current_grade, dropped,
+    categories, cleared, current_grade, dropped, has_grades,
     MAX_PARTS, SplitProblem, describe_needed, is_split, item_percent, labels, needed_for, numbers,
     parse_class, parse_goal, parse_grade, parse_part_weight, show_number, split_category,
     splittable, with_rule,
@@ -292,7 +292,7 @@ MENU = [
     "", "1) Change a grade", "2) Change the goal", "3) Rename this class", "4) Delete this class",
     "5) What if (try grades without saving)", "6) Split a category",
     "7) Drop the lowest or keep the highest grade",
-    "8) History (see this session's changes and go back)", "9) Quit",
+    "8) History (see this session's changes and go back)", "9) Clear all grades", "10) Quit",
 ]
 
 
@@ -312,7 +312,7 @@ def run_menu(items, name, goal, ask, say, folder):
     while True:
         for line in screen(items, name, goal) + MENU:
             say(line)
-        choice = _ask(ask, "Choose 1 to 9: ").strip()
+        choice = _ask(ask, "Choose 1 to 10: ").strip()
         if choice == "1":
             changed = change_a_grade(items, ask, say)
             remember(grade_change_text(items, changed), items, changed)
@@ -352,9 +352,16 @@ def run_menu(items, name, goal, ask, say, folder):
                 save_class(folder, name, items)
                 say("Saved.")
         elif choice == "9":
+            if ask_clear(items, name, ask, say):
+                changed = cleared(items)
+                remember("Cleared all grades", items, changed)
+                items = changed
+                save_class(folder, name, items)
+                say("Saved.")
+        elif choice == "10":
             raise Quit
         else:
-            say("Please type 1, 2, 3, 4, 5, 6, 7, 8 or 9.")
+            say("Please type 1, 2, 3, 4, 5, 6, 7, 8, 9 or 10.")
         say("")
 
 
@@ -407,6 +414,27 @@ def ask_history(history, ask, say):
         else:
             say("Please type 1 or 2.")
         say("")
+
+
+# --- Clearing all grades (spec.md section 18, R20) ---
+
+def ask_clear(items, name, ask, say):
+    """Ask Yes or No before clearing every grade of the open class. True for Yes.
+
+    If every grade is already N/A, it says so and asks nothing (False).
+    """
+    if not has_grades(items):
+        say("All the grades are already N/A, so there is nothing to clear.")
+        return False
+    question = (
+        f'Are you sure you want to clear all the grades of "{name}"? They will all be N/A. '
+        "You can go back with the history (option 8). Type Yes or No: "
+    )
+    if not _ask_yes_no(ask, say, question):
+        say("Nothing was cleared.")
+        return False
+    say(f'Cleared all the grades of "{name}". They are all N/A now.')
+    return True
 
 
 # --- What if (spec.md section 12) ---
