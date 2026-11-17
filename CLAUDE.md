@@ -85,3 +85,9 @@ python -m pytest                   # run the tests
 - **When two changes end up in the same files** (and `git add -p` can't be used, since it
   is interactive), save a snapshot of each step's files in the scratchpad, then commit them
   one at a time, running the tests at each step.
+- **A script that breaks code on purpose must put the file back in a `finally` block**, so
+  a crash can't leave a break in the working tree. If a break script ever stops early,
+  check the file before doing anything else, and restore it from the copy taken before the
+  break. In round 6 a pytest option that isn't installed (`--timeout`) made pytest print
+  nothing, the script crashed, and `gradecalc.py` was left broken until it was restored.
+  Only pytest's own options work here; no pytest plugins are installed.
