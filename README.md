@@ -39,7 +39,8 @@ each category.
 
 From the menu you can change a grade (it is saved), change the goal, rename the class,
 delete it, try grades in what-if mode, split a category into parts, drop the lowest grade
-of a split category (or keep only its highest), see the history of your changes, or quit.
+of a split category (or keep only its highest), see the history of your changes, clear
+all grades, see the grade scale, or quit.
 
 **Splitting a category.** Any category except midterm and final can be split into 2 to
 10 parts, for example the 2 homeworks given so far out of 4. It asks how many parts, each
@@ -58,6 +59,15 @@ the "You need..." % takes the drop into account. By default every part counts.
 program (grades, splits, drop choices). You can go back to before any of them, which
 undoes that change and every later one, and saves the class. The history is kept only
 while the program is open, so it starts empty each time.
+
+**Clear all grades.** Makes every grade of the open class N/A again, after you type Yes.
+The splits and drop choices stay. If it was a mistake, go back to before it in the
+history, which is the only way to get the grades back.
+
+**The grade scale.** Pick any item of the class (each part of a split category is its
+own item), the whole class, or all your saved classes together (the average of their %).
+It shows the full grade scale with `<- your goal` and `<- you are here (89%)`, and how far
+you are from your goal, like `You are 1% from an A- (90%).` Press Enter to go back.
 
 **What if.** In what-if mode you can try any grade
 ("what if I get 18 on the final?") and see your grade and what you still need. Nothing
